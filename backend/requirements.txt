@@ -1,0 +1,20 @@
+# Intermediate College Management Portal - Backend pinned dependencies
+# Python 3.12 | MySQL 8.x
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+sqlalchemy==2.0.36
+alembic==1.14.0
+pymysql==1.1.1
+cryptography==44.0.0            # required by PyMySQL for MySQL 8 caching_sha2_password
+pydantic==2.10.4
+pydantic-settings==2.7.0
+email-validator==2.2.0
+PyJWT==2.10.1
+argon2-cffi==23.1.0             # secure password hashing (Argon2id)
+python-multipart==0.0.19
+slowapi==0.1.9                  # rate limiting on login / public lookup
+pytz==2024.2
+# --- testing ---
+pytest==8.3.4
+pytest-asyncio==0.25.0
+httpx==0.28.1
