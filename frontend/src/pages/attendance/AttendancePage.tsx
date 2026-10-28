@@ -1,16 +1,20 @@
 /**
  * Attendance workbench.
  *
- * Class options are derived from GET /attendance/sessions, which the SERVER
- * already scopes to the caller (faculty → own classes, principal → all).
- * Save (PUT) and Submit (POST) enforce their rules server-side; this page
- * renders affordances from permissions and always re-reads after a write.
+ * Class options come from GET /meta/classes, which the SERVER scopes to the
+ * caller (faculty → assigned classes, principal/admin → all). Using the
+ * catalog (not just existing sessions) means a class with no sessions yet —
+ * e.g. a CEC section, or a newly-assigned faculty's class — still appears and
+ * can be opened for marking. Save (PUT) and Submit (POST) enforce their rules
+ * server-side; this page renders affordances from permissions and always
+ * re-reads after a write.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckCheck, Send } from 'lucide-react';
 import { get, post, put } from '@/shared/api/client';
 import type {
   AttendanceStatus,
+  ClassSectionOut,
   RosterStudent,
   SaveRecordsResponse,
   SessionDetail,
@@ -51,6 +55,7 @@ export default function AttendancePage(): JSX.Element {
   const [sessionsError, setSessionsError] = useState<unknown>(null);
   const [sessionsLoading, setSessionsLoading] = useState(true);
 
+  const [classes, setClasses] = useState<ClassSectionOut[]>([]);
   const [classId, setClassId] = useState<number | null>(null);
   const [date, setDate] = useState<string>(todayISO());
   const [detail, setDetail] = useState<SessionDetail | null>(null);
@@ -69,8 +74,6 @@ export default function AttendancePage(): JSX.Element {
     try {
       const rows = await get<SessionSummary[]>('/attendance/sessions');
       setSessions(rows);
-      // Default to the most recent class the caller may act on.
-      setClassId((current) => current ?? rows[0]?.class_section_id ?? null);
     } catch (err) {
       setSessionsError(err);
     } finally {
@@ -78,19 +81,35 @@ export default function AttendancePage(): JSX.Element {
     }
   }, []);
 
+  // Class catalog (server-scoped to this caller). Drives the dropdown so a
+  // class with no sessions yet (e.g. CEC, or a brand-new assignment) is still
+  // selectable and can be opened for marking.
+  const loadClasses = useCallback(async () => {
+    try {
+      const rows = await get<ClassSectionOut[]>('/meta/classes');
+      setClasses(rows);
+      // Default to the first class the caller may act on.
+      setClassId((current) => current ?? rows[0]?.id ?? null);
+    } catch {
+      setClasses([]);
+    }
+  }, []);
+
   useEffect(() => {
     void loadSessions();
-  }, [loadSessions]);
+    void loadClasses();
+  }, [loadSessions, loadClasses]);
 
-  const classOptions = useMemo(() => {
-    const map = new Map<number, { label: string; branch: string }>();
-    for (const s of sessions) {
-      if (!map.has(s.class_section_id)) {
-        map.set(s.class_section_id, { label: s.class_label, branch: s.branch_code });
-      }
-    }
-    return [...map.entries()].map(([id, v]) => ({ id, ...v }));
-  }, [sessions]);
+  const classOptions = useMemo(
+    () =>
+      classes.map((c) => ({
+        id: c.id,
+        // Same "MPC-I-A" label the backend uses for session summaries.
+        label: `${c.branch_code ?? ''}-${c.section_name}`.replace(/^-/, ''),
+        branch: c.branch_code ?? '',
+      })),
+    [classes],
+  );
 
   const loadDetail = useCallback(async () => {
     if (!classId) return;

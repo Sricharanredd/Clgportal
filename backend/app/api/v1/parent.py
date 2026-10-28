@@ -12,9 +12,12 @@ from app.core.errors import AppError
 from app.core.rate_limit import limiter
 from app.permissions.deps import AuthContext, ensure_student_visible, get_current_user
 from app.schemas.parent import (
+    AttendanceHistoryEntry,
     ParentChildSummary,
     ParentLookupRequest,
     ParentLookupResponse,
+    ParentSearchMatch,
+    ParentSearchRequest,
     ParentSessionResponse,
     ParentVerifyRequest,
 )
@@ -55,7 +58,53 @@ def lookup(
         expires_in=600,
         student=svc._masked_student(db, student),
         verification_required=settings.parent_verification_enabled,
+        hint=(
+            "Enter the access code issued by the college to view records."
+            if settings.parent_verification_enabled
+            else "Demo mode: no access code is required."
+        ),
     )
+
+
+@router.post(
+    "/search",
+    response_model=list[ParentSearchMatch],
+    summary="[public] Partial-name search → masked candidates (discovery only)",
+    responses={404: {"description": "No matching student"}},
+)
+@limiter.limit(settings.lookup_rate_limit)
+def search(
+    request: Request,
+    body: ParentSearchRequest,
+    db: Session = Depends(get_db),
+) -> list[ParentSearchMatch]:
+    """Find candidate students by (partial) name to help a guardian pick.
+
+    Security: this is a *discovery* aid only. It returns masked names plus
+    roll/branch/class so duplicates can be told apart, and issues NO
+    lookup token and NO confidential fields. The caller must still select a
+    result and pass the normal `/lookup` → `/verify` flow, so production
+    access-code verification is unchanged.
+    """
+    rows = svc.search_students_by_name(
+        db, name=body.name, branch_id=body.branch_id, limit=svc.NAME_SEARCH_LIMIT
+    )
+    if not rows:
+        raise AppError(
+            404,
+            "NO_STUDENT",
+            "No student found matching that name in the selected branch.",
+        )
+    return [
+        ParentSearchMatch(
+            branch_id=branch.id,
+            roll_number=student.roll_number,
+            masked_name=svc._mask(student.full_name),
+            branch_code=branch.code,
+            class_section=cls.section_name if cls else None,
+        )
+        for student, branch, cls in rows
+    ]
 
 
 @router.post(
@@ -84,7 +133,14 @@ def verify(
         if link is None:
             raise AppError(404, "NO_STUDENT", "No verified guardian for this student.")
         parent = db.query(Parent).filter(Parent.id == link.parent_id).first()
+        if parent is None or not parent.is_active:
+            raise AppError(404, "NO_STUDENT", "No verified guardian for this student.")
     else:
+        # Production: same generic 401 for missing/short/wrong codes — no
+        # probing signal, no bypass. Length is checked here (not in the
+        # schema) so the demo branch above can run with an empty code.
+        if len(body.access_code.strip()) < 4:
+            raise AppError(401, "INVALID_CODE", "Invalid access code.")
         parent = svc.verify_access_code(db, student_id, body.access_code)
 
     token, expires_in = svc.issue_parent_token(parent)
@@ -188,6 +244,24 @@ def child_attendance(
     from app.repositories.students import attendance_summary
 
     return attendance_summary(db, student_id)
+
+
+@router.get(
+    "/students/{student_id}/attendance/history",
+    response_model=list[AttendanceHistoryEntry],
+    summary="Read-only attendance history by date (submitted sessions only)",
+)
+def child_attendance_history(
+    student_id: int,
+    limit: int = Query(200, ge=1, le=500),
+    db: Session = Depends(get_db),
+    ctx: AuthContext = Depends(get_current_user),
+) -> list[AttendanceHistoryEntry]:
+    _require_parent(ctx)
+    ensure_student_visible(db, ctx, student_id)
+    from app.repositories.students import attendance_history
+
+    return attendance_history(db, student_id, limit)
 
 
 @router.get(

@@ -131,4 +131,41 @@ def attendance_summary(db: Session, student_id: int) -> dict:
     }
 
 
-__all__ = ["search_students", "get_student_profile_parts", "attendance_summary"]
+def attendance_history(db: Session, student_id: int, limit: int = 200) -> list[dict]:
+    """Per-session attendance rows for a student (submitted sessions only).
+
+    Same policy as `attendance_summary`: drafts are never shown, so the
+    history rows always add up to the summary totals.
+    """
+    from app.models.academic import Subject
+
+    rows = (
+        db.query(AttendanceRecord, AttendanceSession, Subject)
+        .join(AttendanceSession, AttendanceSession.id == AttendanceRecord.session_id)
+        .outerjoin(Subject, Subject.id == AttendanceSession.subject_id)
+        .filter(
+            AttendanceRecord.student_id == student_id,
+            AttendanceSession.status == "submitted",
+        )
+        .order_by(AttendanceSession.attendance_date.desc(), AttendanceSession.id.desc())
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "attendance_date": session.attendance_date,
+            "subject_code": subject.code if subject else None,
+            "subject_name": subject.name if subject else None,
+            "status": record.status,
+            "remarks": record.remarks,
+        }
+        for record, session, subject in rows
+    ]
+
+
+__all__ = [
+    "search_students",
+    "get_student_profile_parts",
+    "attendance_summary",
+    "attendance_history",
+]

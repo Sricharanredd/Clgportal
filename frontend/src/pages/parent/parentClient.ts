@@ -4,26 +4,67 @@
  * Parent tokens are issued by /parent/verify (no refresh cookie is involved),
  * so this client intentionally does NOT share the staff axios instance or its
  * silent-refresh logic. On 401 the portal restarts the lookup flow.
+ *
+ * The token is kept in memory plus `sessionStorage` (per-tab, cleared when the
+ * tab closes) so a browser refresh on /parent/student/:id keeps the session.
+ * It is never placed in a URL, localStorage, or a cookie.
  */
 import axios, { AxiosError } from 'axios';
 import type { ApiErrorBody } from '@/shared/api/types';
 import { ApiError, toApiError } from '@/shared/api/client';
 
-let parentToken: string | null = null;
+const SESSION_KEY = 'cmp.parent.session';
 
-export function setParentToken(token: string | null): void {
-  parentToken = token;
+interface StoredSession {
+  token: string;
+  parentName: string;
+}
+
+let session: StoredSession | null = null;
+
+function readStored(): StoredSession | null {
+  if (session) return session;
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (raw) session = JSON.parse(raw) as StoredSession;
+  } catch {
+    // Storage unavailable (private mode etc.) — fall back to memory-only.
+  }
+  return session;
+}
+
+export function setParentSession(token: string, parentName: string): void {
+  session = { token, parentName };
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  } catch {
+    // Memory-only fallback.
+  }
+}
+
+export function clearParentSession(): void {
+  session = null;
+  try {
+    sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    // Memory-only fallback.
+  }
 }
 
 export function getParentToken(): string | null {
-  return parentToken;
+  return readStored()?.token ?? null;
+}
+
+export function getParentName(): string | null {
+  return readStored()?.parentName ?? null;
 }
 
 export const parentApi = axios.create({ baseURL: '/api/v1' });
 
 parentApi.interceptors.request.use((config) => {
-  if (parentToken) {
-    config.headers.Authorization = `Bearer ${parentToken}`;
+  const token = getParentToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });

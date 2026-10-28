@@ -52,13 +52,42 @@ def list_classes(
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(get_current_user),
 ) -> list[ClassSectionOut]:
-    q = db.query(ClassSection).filter(ClassSection.is_active.is_(True))
+    """Class sections for dropdowns.
+
+    Faculty are SCOPED server-side to their assigned classes/branches
+    (same authority as /attendance/sessions): the dropdown can never offer
+    a class the caller could not act on anyway (writes are re-checked).
+    """
+    q = (
+        db.query(ClassSection, Branch)
+        .join(Branch, Branch.id == ClassSection.branch_id)
+        .filter(ClassSection.is_active.is_(True))
+    )
     if academic_year_id:
         q = q.filter(ClassSection.academic_year_id == academic_year_id)
     if branch_id:
         q = q.filter(ClassSection.branch_id == branch_id)
-    rows = q.order_by(ClassSection.branch_id, ClassSection.year_of_study, ClassSection.section_name).all()
-    return [ClassSectionOut.model_validate(r) for r in rows]
+
+    # --- record-level scope (faculty: assigned classes/branches only) ---
+    if ctx.class_scope is not None:
+        if not ctx.class_scope:
+            return []
+        q = q.filter(ClassSection.id.in_(list(ctx.class_scope)))
+    if ctx.branch_scope is not None:
+        if not ctx.branch_scope:
+            return []
+        q = q.filter(ClassSection.branch_id.in_(list(ctx.branch_scope)))
+
+    rows = q.order_by(
+        ClassSection.branch_id, ClassSection.year_of_study, ClassSection.section_name
+    ).all()
+    out: list[ClassSectionOut] = []
+    for cls, branch in rows:
+        item = ClassSectionOut.model_validate(cls)
+        item.branch_code = branch.code
+        item.branch_name = branch.name
+        out.append(item)
+    return out
 
 
 @router.get("/subjects", response_model=list[SubjectOut], summary="List subjects")
@@ -67,8 +96,14 @@ def list_subjects(
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(get_current_user),
 ) -> list[SubjectOut]:
+    """Subjects for dropdowns. Faculty only see subjects of their assigned
+    branches (consistent with the class scoping above)."""
     q = db.query(Subject).filter(Subject.is_active.is_(True))
     if branch_id:
         q = q.filter(Subject.branch_id == branch_id)
+    if ctx.branch_scope is not None:
+        if not ctx.branch_scope:
+            return []
+        q = q.filter(Subject.branch_id.in_(list(ctx.branch_scope)))
     rows = q.order_by(Subject.code).all()
     return [SubjectOut.model_validate(r) for r in rows]

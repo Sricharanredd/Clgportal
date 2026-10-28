@@ -1,14 +1,24 @@
 """Demo data initialization process.
 
 Usage (from backend/):
-    python -m app.seed            # seed if the database is empty
+    python -m app.seed            # seed if empty; always refresh staff/reference
     python -m app.seed --reset    # WIPE all data, then seed fresh
 
 Produces ONLY synthetic records. Demo staff logins (password `Demo@1234`):
     principal@demo.edu | admin@demo.edu | accounts@demo.edu
-    faculty.mpc@demo.edu | faculty.bipc@demo.edu
+    faculty.mpc@demo.edu  | faculty.bipc@demo.edu        (whole branch)
+    faculty.mpc1@demo.edu | faculty.mpc2@demo.edu        (MPC I / II year)
+    faculty.bipc1@demo.edu | faculty.bipc2@demo.edu      (BiPC I / II year)
+    faculty.cec1@demo.edu | faculty.cec2@demo.edu        (CEC I / II year)
 Parent lookup: any synthetic roll number (e.g. MPC25001) with access
 code `DEMO-<roll>`.
+
+The reference/staff step (`seed_reference`) is fully idempotent — every row
+is get-or-create by its natural key — so it runs on EVERY invocation. That
+lets an already-seeded database gain new demo staff/accounts (and their
+faculty assignments) without a wipe, while repeated runs never duplicate
+rows. Synthetic student/attendance/exam/fee data is only written when the
+database is empty or `--reset` is used.
 """
 from __future__ import annotations
 
@@ -47,11 +57,22 @@ def run(reset: bool = False) -> None:
     try:
         if reset:
             _wipe(db)
-        elif db.execute(text("SELECT 1 FROM roles LIMIT 1")).first():
-            logger.info("Database already seeded — use --reset to re-seed")
+        already_seeded = bool(
+            db.execute(text("SELECT 1 FROM roles LIMIT 1")).first()
+        )
+
+        # Reference/staff upsert runs ALWAYS (idempotent by natural key) so
+        # existing databases pick up newly added demo staff + assignments
+        # without a wipe, and repeated runs never create duplicates.
+        ref = seed_reference(db)
+
+        if already_seeded and not reset:
+            logger.info(
+                "Database already seeded — staff/reference refreshed "
+                "(students/attendance/exams untouched). Use --reset to re-seed."
+            )
             return
 
-        ref = seed_reference(db)
         students = seed_students(db, ref)
         seed_attendance(db, ref, students)
         seed_examinations(db, ref, students)

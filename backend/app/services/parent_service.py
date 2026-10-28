@@ -48,6 +48,74 @@ def find_student(db: Session, branch_id: int, roll_number: str) -> Student | Non
     )
 
 
+NAME_SEARCH_LIMIT = 10
+
+
+def _escape_like(value: str) -> str:
+    """Escape LIKE wildcards so user input is matched literally."""
+    return (
+        value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    )
+
+
+def search_students_by_name(
+    db: Session,
+    *,
+    name: str,
+    branch_id: int | None = None,
+    limit: int = NAME_SEARCH_LIMIT,
+) -> list[tuple[Student, Branch, ClassSection | None]]:
+    """Case-insensitive partial-name search for the public parent portal.
+
+    Discovery aid only: returns `(student, branch, class_section)` rows so a
+    guardian can disambiguate duplicates. It issues NO lookup token and NO
+    confidential data — the caller must still pass `/lookup` + `/verify`.
+
+    - Parameterised `ilike` with escaped wildcards (no string-built SQL).
+    - Active students only; hard-capped `limit` so the table is never loaded.
+    - Optional branch filter narrows the scan further.
+    """
+    from sqlalchemy import func, or_
+
+    q = (
+        db.query(Student, Branch, ClassSection)
+        .join(Branch, Branch.id == Student.branch_id)
+        .outerjoin(
+            Enrollment,
+            (Enrollment.student_id == Student.id) & (Enrollment.status == "active"),
+        )
+        .outerjoin(ClassSection, ClassSection.id == Enrollment.class_section_id)
+        .filter(Student.is_active.is_(True))
+    )
+    if branch_id:
+        q = q.filter(Student.branch_id == branch_id)
+
+    pattern = f"%{_escape_like(name.strip())}%"
+    q = q.filter(
+        or_(
+            Student.first_name.ilike(pattern, escape="\\"),
+            Student.last_name.ilike(pattern, escape="\\"),
+            func.concat(Student.first_name, " ", Student.last_name).ilike(
+                pattern, escape="\\"
+            ),
+        )
+    )
+
+    # A student with several enrolment rows could repeat; dedupe by id while
+    # preserving roll-number order and honouring the cap.
+    rows = q.order_by(Student.roll_number).limit(limit * 3).all()
+    seen: set[int] = set()
+    out: list[tuple[Student, Branch, ClassSection | None]] = []
+    for student, branch, cls in rows:
+        if student.id in seen:
+            continue
+        seen.add(student.id)
+        out.append((student, branch, cls))
+        if len(out) >= limit:
+            break
+    return out
+
+
 def create_lookup_token(student: Student) -> str:
     """Signed token proving a successful lookup (10-minute validity)."""
     now = datetime.now(timezone.utc)
@@ -152,6 +220,8 @@ def list_children(db: Session, parent_id: int) -> list[ParentChildSummary]:
 
 __all__ = [
     "find_student",
+    "search_students_by_name",
+    "NAME_SEARCH_LIMIT",
     "create_lookup_token",
     "verify_lookup_token",
     "verify_access_code",

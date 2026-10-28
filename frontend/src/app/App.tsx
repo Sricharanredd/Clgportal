@@ -3,6 +3,7 @@ import { AuthProvider } from '@/app/AuthContext';
 import { StatePanel } from '@/components/ui/States';
 import AppLayout from '@/layouts/AppLayout';
 import DashboardPage from '@/pages/dashboard/DashboardPage';
+import HomePage from '@/pages/home/HomePage';
 import LoginPage from '@/pages/auth/LoginPage';
 import StudentsPage from '@/pages/students/StudentsPage';
 import StudentDetailPage from '@/pages/students/StudentDetailPage';
@@ -19,7 +20,11 @@ export default function App(): JSX.Element {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
+          {/* Public routes (no authentication) */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/admin/login" element={<LoginPage />} />
+          {/* Bookmarks: the staff login moved to /admin/login */}
+          <Route path="/login" element={<Navigate to="/admin/login" replace />} />
 
           {/* Staff portal (permission-guarded feature routes) */}
           <Route
@@ -29,7 +34,6 @@ export default function App(): JSX.Element {
               </RequireAuth>
             }
           >
-            <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/students" element={<RequirePermission anyOf={['students:read']}><StudentsPage /></RequirePermission>} />
             <Route path="/students/:id" element={<RequirePermission anyOf={['students:read']}><StudentDetailPage /></RequirePermission>} />
@@ -39,8 +43,11 @@ export default function App(): JSX.Element {
             <Route path="/announcements" element={<RequirePermission anyOf={['announcements:read']}><AnnouncementsPage /></RequirePermission>} />
           </Route>
 
-          {/* Parent portal (read-only, own shell) */}
-          <Route path="/parent/*" element={<ParentPortal />} />
+          {/* Parent portal (read-only, own shell, URL-driven) */}
+          <Route path="/parent" element={<ParentPortal mode="lookup" />} />
+          <Route path="/parent/student/:studentId" element={<ParentPortal mode="student" />} />
+          {/* Older wildcard parent URL → search page */}
+          <Route path="/parent/*" element={<Navigate to="/parent" replace />} />
 
           <Route
             path="*"

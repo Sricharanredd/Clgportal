@@ -15,6 +15,9 @@ os.environ["DB_ECHO"] = "false"
 # test_login_rate_limit temporarily burns its own budget and resets the limiter.
 os.environ["LOGIN_RATE_LIMIT"] = "20/minute"
 os.environ["LOOKUP_RATE_LIMIT"] = "1000/minute"
+# Tests always run with production parent-verification behavior; the demo
+# bypass is exercised separately by monkeypatching the settings flag.
+os.environ["PARENT_VERIFICATION_ENABLED"] = "true"
 # --- THIS LINE MUST STAY ABOVE EVERY app IMPORT -----------------------------
 
 import pytest  # noqa: E402

@@ -59,8 +59,16 @@ STAFF_ACCOUNTS = [
     ("principal@demo.edu", "Dr. Anitha Rao", RoleName.PRINCIPAL.value, "Principal"),
     ("admin@demo.edu", "Ravi Kumar", RoleName.ADMINISTRATOR.value, "Administrative Officer"),
     ("accounts@demo.edu", "Sushma Reddy", RoleName.ACCOUNTS.value, "Accounts Manager"),
+    # Legacy whole-branch faculty demo accounts (kept for compatibility).
     ("faculty.mpc@demo.edu", "Vikram Shah", RoleName.FACULTY.value, "Assistant Professor"),
     ("faculty.bipc@demo.edu", "Meena Iyer", RoleName.FACULTY.value, "Assistant Professor"),
+    # Per-branch-per-year faculty demo accounts (each scoped by assignment).
+    ("faculty.mpc1@demo.edu", "Arun Kumar", RoleName.FACULTY.value, "Assistant Professor — MPC I Year"),
+    ("faculty.mpc2@demo.edu", "Deepa Menon", RoleName.FACULTY.value, "Assistant Professor — MPC II Year"),
+    ("faculty.bipc1@demo.edu", "Sanjay Rao", RoleName.FACULTY.value, "Assistant Professor — BiPC I Year"),
+    ("faculty.bipc2@demo.edu", "Lakshmi Nair", RoleName.FACULTY.value, "Assistant Professor — BiPC II Year"),
+    ("faculty.cec1@demo.edu", "Prakash Iyer", RoleName.FACULTY.value, "Assistant Professor — CEC I Year"),
+    ("faculty.cec2@demo.edu", "Shalini Gupta", RoleName.FACULTY.value, "Assistant Professor — CEC II Year"),
 ]
 
 # Sections per branch: (section_name, year_of_study)
@@ -173,10 +181,13 @@ def seed_reference(db: Session) -> dict:
     db.flush()
 
     # --- faculty assignments ---
-    #   MPC faculty: class teacher of MPC I-A; teaches M-MAT (I-A & II-A), M-PHY (II-A)
-    #   BiPC faculty: class teacher of BiPC I-A; teaches B-BOT, B-ZOO (I-A), B-BOT (II-A)
+    #   Legacy faculty span both years of their branch; the per-year demo
+    #   faculty are scoped to exactly ONE class (branch + year), which is
+    #   what AuthContext.class_scope/branch_scope is built from.
+    #   `subject_id` must also be assigned: results entry checks BOTH the
+    #   class and the subject (services.examinations.ensure_may_manage).
     assignments = [
-        # class_teacher rows double as the teacher's own subject assignment
+        # legacy whole-branch faculty (unchanged)
         ("faculty.mpc@demo.edu", "MPC-I-A", "M-MAT", "class_teacher"),
         ("faculty.mpc@demo.edu", "MPC-II-A", "M-MAT", "subject_teacher"),
         ("faculty.mpc@demo.edu", "MPC-II-A", "M-PHY", "subject_teacher"),
@@ -185,18 +196,29 @@ def seed_reference(db: Session) -> dict:
         ("faculty.bipc@demo.edu", "BiPC-I-A", "B-ZOO", "subject_teacher"),
         ("faculty.bipc@demo.edu", "BiPC-II-A", "B-BOT", "subject_teacher"),
         ("faculty.bipc@demo.edu", "BiPC-II-A", "B-ZOO", "subject_teacher"),
+        # per-year faculty: MPC
+        ("faculty.mpc1@demo.edu", "MPC-I-A", "M-MAT", "class_teacher"),
+        ("faculty.mpc1@demo.edu", "MPC-I-A", "M-PHY", "subject_teacher"),
+        ("faculty.mpc2@demo.edu", "MPC-II-A", "M-MAT", "class_teacher"),
+        ("faculty.mpc2@demo.edu", "MPC-II-A", "M-PHY", "subject_teacher"),
+        # per-year faculty: BiPC
+        ("faculty.bipc1@demo.edu", "BiPC-I-A", "B-BOT", "class_teacher"),
+        ("faculty.bipc1@demo.edu", "BiPC-I-A", "B-ZOO", "subject_teacher"),
+        ("faculty.bipc2@demo.edu", "BiPC-II-A", "B-BOT", "class_teacher"),
+        ("faculty.bipc2@demo.edu", "BiPC-II-A", "B-ZOO", "subject_teacher"),
+        # per-year faculty: CEC
+        ("faculty.cec1@demo.edu", "CEC-I-A", "C-ECO", "class_teacher"),
+        ("faculty.cec1@demo.edu", "CEC-I-A", "C-CIV", "subject_teacher"),
+        ("faculty.cec2@demo.edu", "CEC-II-A", "C-ECO", "class_teacher"),
+        ("faculty.cec2@demo.edu", "CEC-II-A", "C-COM", "subject_teacher"),
     ]
     for email, class_key, subject_code, a_type in assignments:
-        # class_teacher row is also a subject row for the main subject
-        sub = subject_code
-        if a_type == "class_teacher":
-            sub = "M-MAT" if "MPC" in class_key else "B-BOT"
         exists = (
             db.query(FacultyAssignment)
             .filter(
                 FacultyAssignment.user_id == user_ids[email],
                 FacultyAssignment.class_section_id == class_ids[class_key],
-                FacultyAssignment.subject_id == subject_ids[sub],
+                FacultyAssignment.subject_id == subject_ids[subject_code],
             )
             .first()
         )
@@ -205,7 +227,7 @@ def seed_reference(db: Session) -> dict:
                 FacultyAssignment(
                     user_id=user_ids[email],
                     class_section_id=class_ids[class_key],
-                    subject_id=subject_ids[sub],
+                    subject_id=subject_ids[subject_code],
                     academic_year_id=year.id,
                     assignment_type=a_type,
                 )

@@ -28,7 +28,7 @@ export type AuthStatus = 'loading' | 'authenticated' | 'anonymous';
 interface AuthContextValue {
   status: AuthStatus;
   user: UserOut | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<UserOut>;
   logout: () => Promise<void>;
   has: (permission: string) => boolean;
   hasAny: (...permissions: string[]) => boolean;
@@ -47,29 +47,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus('anonymous');
   }, []);
 
-  // Bootstrap: try the refresh cookie → /auth/me; otherwise anonymous.
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const refreshed = await refreshAccessToken();
-      if (!refreshed) {
-        if (!cancelled) setStatus('anonymous');
-        return;
-      }
-      try {
-        const me = await get<MeResponse>('/auth/me');
-        if (!cancelled) {
-          setUser(me.user);
-          setStatus('authenticated');
-        }
-      } catch {
-        if (!cancelled) clear();
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+  // Bootstrap / re-validate: try the refresh cookie → /auth/me; else anonymous.
+  const restoreSession = useCallback(async () => {
+    const refreshed = await refreshAccessToken();
+    if (!refreshed) {
+      setStatus('anonymous');
+      return;
+    }
+    try {
+      const me = await get<MeResponse>('/auth/me');
+      setUser(me.user);
+      setStatus('authenticated');
+    } catch {
+      clear();
+    }
   }, [clear]);
+
+  // Initial mount only. `restoreSession` is stable (clear is stable).
+  useEffect(() => {
+    void restoreSession();
+  }, [restoreSession]);
+
+  // Back/forward cache: a page restored from bfcache still holds the OLD
+  // in-memory token + React state. Drop the token and re-check the server so
+  // a page visited before logout cannot be reused without reauthentication.
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted) return; // normal load — handled by the effect above
+      setAccessToken(null);
+      setUser(null);
+      setStatus('loading');
+      void restoreSession();
+    };
+    window.addEventListener('pageshow', onPageShow as EventListener);
+    return () => window.removeEventListener('pageshow', onPageShow as EventListener);
+  }, [restoreSession]);
 
   // Server told us the session is gone (refresh failed mid-flight).
   useEffect(() => {
@@ -78,11 +90,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
   }, [clear]);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string): Promise<UserOut> => {
     const res = await post<LoginResponse>('/auth/login', { email, password });
     setAccessToken(res.access_token);
     setUser(res.user);
     setStatus('authenticated');
+    return res.user;
   }, []);
 
   const logout = useCallback(async () => {

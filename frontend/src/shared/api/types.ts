@@ -118,6 +118,14 @@ export interface AttendanceSummary {
   attendance_pct: number;
 }
 
+export interface AttendanceHistoryEntry {
+  attendance_date: string;
+  subject_code: string | null;
+  subject_name: string | null;
+  status: string;
+  remarks: string | null;
+}
+
 export interface ResultSummary {
   exam_title: string;
   subject_code: string;
@@ -551,6 +559,14 @@ export interface ParentLookupResponse {
   student: MaskedStudent;
   verification_required: boolean;
   hint: string;
+}
+
+export interface ParentSearchMatch {
+  branch_id: number;
+  roll_number: string;
+  masked_name: string;
+  branch_code: string;
+  class_section: string | null;
 }
 
 export interface ParentVerifyRequest {
