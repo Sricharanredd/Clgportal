@@ -12,10 +12,11 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
-from app.models.academic import Branch, ClassSection, Subject
+from app.models.academic import Branch, ClassSection, FacultyAssignment, Subject
 from app.models.exam import ExamResult, Examination
 from app.models.student import Enrollment, Student
 from app.permissions.deps import AuthContext
@@ -43,21 +44,61 @@ def _class_label(db: Session, class_id: int) -> tuple[str, str]:
 def ensure_may_manage(
     db: Session, ctx: AuthContext, class_id: int, subject_id: int
 ) -> None:
-    """Result ENTRY gate: `results:write` + assignment scope.
+    """Result ENTRY gate: `results:write` + assignment scope + curriculum.
 
-    - Faculty (scoped): exam class AND subject must both be assigned.
+    - The class must exist, the subject must exist, and the subject must
+      belong to the class's branch (a stream's curriculum) — never trusting
+      the ids sent by the client.
+    - Faculty (scoped): the (class, subject) PAIR must come from their own
+      assignments — being assigned a class and a subject separately is not
+      enough.
     - Scope-unrestricted holders of results:write (e.g. exam-cell staff)
-      may manage any class.
+      may manage any valid class/subject combination.
     - `results:publish` deliberately does NOT grant entry rights (PRD §3.1):
       the principal authorizes publication/correction, faculty perform entry."""
     if "results:write" not in ctx.permissions:
         raise AppError(
             403, "FORBIDDEN", "You do not have permission to enter results."
         )
-    if ctx.class_scope is None:
-        return  # scope-unrestricted staff account with results:write
-    if class_id not in ctx.class_scope or subject_id not in ctx.subject_scope:
-        raise AppError(403, "FORBIDDEN", "You are not assigned to this class/subject.")
+
+    # --- faculty: the (class, subject) PAIR must be assigned (403 first:
+    #     no information leak about which classes/subjects exist) ---
+    if ctx.class_scope is not None:
+        pair = (
+            db.query(FacultyAssignment.id)
+            .filter(
+                FacultyAssignment.user_id == ctx.user_id,
+                FacultyAssignment.class_section_id == class_id,
+                FacultyAssignment.subject_id == subject_id,
+            )
+            .first()
+        )
+        if pair is None:
+            raise AppError(
+                403, "FORBIDDEN", "You are not assigned to this class/subject."
+            )
+
+    # --- reference-data validation (server-side, never trust client ids) ---
+    cls = (
+        db.query(ClassSection, Branch)
+        .join(Branch, Branch.id == ClassSection.branch_id)
+        .filter(ClassSection.id == class_id)
+        .first()
+    )
+    if cls is None:
+        raise AppError(404, "NOT_FOUND", "Class not found.")
+    subject = db.query(Subject).filter(Subject.id == subject_id).first()
+    if subject is None or not subject.is_active:
+        raise AppError(422, "INVALID_SUBJECT", "Subject not found or inactive.")
+    if subject.branch_id != cls[0].branch_id:
+        raise AppError(
+            422,
+            "SUBJECT_NOT_IN_CURRICULUM",
+            f"{subject.code} is not a subject of {cls[1].code} "
+            f"(class {cls[0].section_name}).",
+        )
+    # (scope-unrestricted staff accounts with results:write pass any valid
+    #  class/subject combination; faculty reach here only via an assigned pair.)
 
 
 def _exam_out(db: Session, exam: Examination) -> ExaminationOut:
@@ -198,10 +239,18 @@ def _can_enter(db: Session, ctx: AuthContext, exam: Examination) -> bool:
         return False
     if ctx.class_scope is None:
         return True
-    return (
-        exam.class_section_id in ctx.class_scope
-        and exam.subject_id in (ctx.subject_scope or frozenset())
+    # Pair-aware, exactly like ensure_may_manage: the sheet is editable only
+    # when this faculty is assigned to this exam's (class, subject).
+    pair = (
+        db.query(FacultyAssignment.id)
+        .filter(
+            FacultyAssignment.user_id == ctx.user_id,
+            FacultyAssignment.class_section_id == exam.class_section_id,
+            FacultyAssignment.subject_id == exam.subject_id,
+        )
+        .first()
     )
+    return pair is not None
 
 
 def create_examination(db: Session, body: dict, ctx: AuthContext) -> ExaminationOut:
@@ -211,16 +260,8 @@ def create_examination(db: Session, body: dict, ctx: AuthContext) -> Examination
         raise AppError(
             422, "INVALID_MARKS", "Pass marks cannot exceed maximum marks."
         )
-    exists = (
-        db.query(Examination)
-        .filter(
-            Examination.class_section_id == body["class_section_id"],
-            Examination.subject_id == body["subject_id"],
-            Examination.title == body["title"],
-        )
-        .first()
-    )
-    if exists is not None:
+    existing = _find_duplicate(db, body["class_section_id"], body["subject_id"], body["title"])
+    if existing is not None:
         raise AppError(
             409,
             "DUPLICATE_EXAMINATION",
@@ -240,9 +281,42 @@ def create_examination(db: Session, body: dict, ctx: AuthContext) -> Examination
         created_by=ctx.user_id,
     )
     db.add(exam)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        # Two requests raced past the `exists` pre-check above (e.g. a
+        # double-click that reached the server twice): the unique constraint
+        # uq_exam_class_subject_title is the last line of defence — translate
+        # it to the same 409 the pre-check returns instead of a 500.
+        db.rollback()
+        if "uq_exam_class_subject_title" in str(exc.orig):
+            raise AppError(
+                409,
+                "DUPLICATE_EXAMINATION",
+                "An examination with this title already exists for this class/subject.",
+            ) from exc
+        raise
     db.refresh(exam)
     return _exam_out(db, exam)
+
+
+def _find_duplicate(
+    db: Session, class_section_id: int, subject_id: int, title: str
+) -> Examination | None:
+    """Pre-check for the (class, subject, title) unique constraint.
+
+    Kept separate so tests can bypass it and exercise the IntegrityError
+    fallback below (two requests racing past this check).
+    """
+    return (
+        db.query(Examination)
+        .filter(
+            Examination.class_section_id == class_section_id,
+            Examination.subject_id == subject_id,
+            Examination.title == title,
+        )
+        .first()
+    )
 
 
 def _current_year_id(db: Session) -> int:
@@ -284,57 +358,62 @@ def save_results(
 
     saved = 0
     seen: set[int] = set()
-    for item in results:
-        sid = item["student_id"]
-        if sid in seen:
-            raise AppError(409, "DUPLICATE_RESULT", f"Duplicate entry for student {sid}.")
-        seen.add(sid)
-        if sid not in roster:
-            raise AppError(
-                422, "NOT_ENROLLED", f"Student {sid} is not enrolled in this class."
-            )
-        raw_marks = item.get("marks_obtained")
-        marks = Decimal(str(raw_marks)) if raw_marks is not None else None
-        is_absent = bool(item.get("is_absent"))
-        if (
-            marks is not None
-            and not is_absent
-            and (marks < 0 or marks > exam.max_marks)
-        ):
-            raise AppError(
-                422,
-                "MARKS_OUT_OF_RANGE",
-                f"Marks must be between 0 and {exam.max_marks} "
-                f"(student {sid}: {marks}).",
-            )
-        enrollment_id = roster[sid]
-        row = existing.get(enrollment_id)
-        if marks is None and not is_absent:
-            # Blank row = not entered; drop any stale row so counts stay honest.
-            if row is not None:
-                db.delete(row)
-            continue
-        if marks is None and is_absent:
-            # Column is NOT NULL; absent rows store 0 (read APIs mask it).
-            marks = Decimal("0")
-        if row is None:
-            db.add(
-                ExamResult(
-                    examination_id=exam.id,
-                    enrollment_id=enrollment_id,
-                    marks_obtained=marks,
-                    is_absent=is_absent,
-                    remarks=item.get("remarks"),
-                    entered_by=ctx.user_id,
-                    updated_by=ctx.user_id,
+    try:
+        for item in results:
+            sid = item["student_id"]
+            if sid in seen:
+                raise AppError(409, "DUPLICATE_RESULT", f"Duplicate entry for student {sid}.")
+            seen.add(sid)
+            if sid not in roster:
+                raise AppError(
+                    422, "NOT_ENROLLED", f"Student {sid} is not enrolled in this class."
                 )
-            )
-        else:
-            row.marks_obtained = marks
-            row.is_absent = is_absent
-            row.remarks = item.get("remarks")
-            row.updated_by = ctx.user_id
-        saved += 1
+            raw_marks = item.get("marks_obtained")
+            marks = Decimal(str(raw_marks)) if raw_marks is not None else None
+            is_absent = bool(item.get("is_absent"))
+            if (
+                marks is not None
+                and not is_absent
+                and (marks < 0 or marks > exam.max_marks)
+            ):
+                raise AppError(
+                    422,
+                    "MARKS_OUT_OF_RANGE",
+                    f"Marks must be between 0 and {exam.max_marks} "
+                    f"(student {sid}: {marks}).",
+                )
+            enrollment_id = roster[sid]
+            row = existing.get(enrollment_id)
+            if marks is None and not is_absent:
+                # Blank row = not entered; drop any stale row so counts stay honest.
+                if row is not None:
+                    db.delete(row)
+                continue
+            if marks is None and is_absent:
+                # Column is NOT NULL; absent rows store 0 (read APIs mask it).
+                marks = Decimal("0")
+            if row is None:
+                db.add(
+                    ExamResult(
+                        examination_id=exam.id,
+                        enrollment_id=enrollment_id,
+                        marks_obtained=marks,
+                        is_absent=is_absent,
+                        remarks=item.get("remarks"),
+                        entered_by=ctx.user_id,
+                        updated_by=ctx.user_id,
+                    )
+                )
+            else:
+                row.marks_obtained = marks
+                row.is_absent = is_absent
+                row.remarks = item.get("remarks")
+                row.updated_by = ctx.user_id
+            saved += 1
+    except Exception:
+        # One bad row fails the WHOLE batch: nothing is partially saved.
+        db.rollback()
+        raise
     db.commit()
 
     entered = (

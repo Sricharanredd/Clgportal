@@ -5,9 +5,10 @@
  * caller (faculty → assigned classes, principal/admin → all). Using the
  * catalog (not just existing sessions) means a class with no sessions yet —
  * e.g. a CEC section, or a newly-assigned faculty's class — still appears and
- * can be opened for marking. Save (PUT) and Submit (POST) enforce their rules
- * server-side; this page renders affordances from permissions and always
- * re-reads after a write.
+ * can be opened for marking. Submit carries the marks WITH the request (no
+ * prior draft required); Save (PUT) and Submit (POST) both enforce their
+ * rules server-side; this page renders affordances from permissions and
+ * always re-reads after a write.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckCheck, Send } from 'lucide-react';
@@ -159,19 +160,22 @@ export default function AttendancePage(): JSX.Element {
     setEdits(next);
   };
 
+  // The complete marks payload — shared by Save draft and Submit so a draft
+  // is never required before submitting (the server upserts either way).
+  const buildRecords = (target: SessionDetail) =>
+    target.roster.map((r) => ({
+      student_id: r.student_id,
+      status: edits[r.student_id]?.status ?? 'present',
+      remarks: edits[r.student_id]?.remarks || null,
+    }));
+
   const save = async () => {
     if (!detail || !classId) return;
     setSaving(true);
     setActionError(null);
     setNotice(null);
     try {
-      const body = {
-        records: detail.roster.map((r) => ({
-          student_id: r.student_id,
-          status: edits[r.student_id]?.status ?? 'present',
-          remarks: edits[r.student_id]?.remarks || null,
-        })),
-      };
+      const body = { records: buildRecords(detail) };
       const res = await put<SaveRecordsResponse>(
         '/attendance/roster',
         body,
@@ -187,14 +191,16 @@ export default function AttendancePage(): JSX.Element {
   };
 
   const submit = async () => {
-    if (!classId) return;
+    if (!detail || !classId) return;
     setSubmitting(true);
     setActionError(null);
     setNotice(null);
     try {
+      // The marks travel WITH the submit: the server validates scope,
+      // completeness and enrolment, saves, and finalizes in one request.
       const res = await post<SubmitResponse>(
         '/attendance/submit',
-        undefined,
+        { records: buildRecords(detail) },
         { class_id: classId, date },
       );
       setNotice(`Submitted — ${res.marked}/${res.roster_size} marked.`);
@@ -305,7 +311,7 @@ export default function AttendancePage(): JSX.Element {
               <p className="text-sm text-muted">
                 {submitted && !canCorrect
                   ? 'Submitted sessions are read-only. Principals with correction rights may edit.'
-                  : 'Select a status for every student, then save and submit.'}
+                  : 'Select a status for every student, then save a draft or submit directly.'}
               </p>
               <div className="flex gap-2">
                 <button

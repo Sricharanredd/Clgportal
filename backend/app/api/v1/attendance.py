@@ -91,16 +91,33 @@ def save(
 @router.post(
     "/submit",
     response_model=SubmitResponse,
-    summary="Submit attendance (final, immutable without correction rights)",
-    responses={409: {"description": "Incomplete or already submitted"}},
+    summary="Submit attendance (marks may be included; no prior draft required)",
+    responses={
+        403: {"description": "Not assigned to this class"},
+        409: {"description": "Incomplete or already submitted"},
+    },
 )
 def submit(
     class_id: int,
     date: date,
+    body: SaveRecordsRequest | None = None,
     db: Session = Depends(get_db),
     ctx: AuthContext = Depends(require_permission("attendance:write")),
 ) -> SubmitResponse:
-    result = submit_session(db, class_id=class_id, day=date, ctx=ctx)
+    """Finalize a session for a class/date.
+
+    Optional `records` body: when present, the marks are validated, saved
+    and submitted in one transaction (direct Submit — no draft needed).
+    When absent, only a fully-marked draft saved earlier can be submitted.
+    Scope (`ensure_faculty_may_manage`) is enforced either way.
+    """
+    result = submit_session(
+        db,
+        class_id=class_id,
+        day=date,
+        records=[r.model_dump() for r in body.records] if body else None,
+        ctx=ctx,
+    )
     _log_activity(db, ctx, class_id, date, "attendance_submitted")
     return result
 

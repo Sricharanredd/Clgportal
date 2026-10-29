@@ -39,18 +39,21 @@ SUBJECTS: dict[str, list[tuple[str, str]]] = {
         ("M-PHY", "Physics"),
         ("M-CHM", "Chemistry"),
         ("M-ENG", "English"),
+        ("M-SAN", "Sanskrit"),
     ],
     "BiPC": [
         ("B-BOT", "Botany"),
         ("B-ZOO", "Zoology"),
+        ("B-PHY", "Physics"),
         ("B-CHM", "Chemistry"),
         ("B-ENG", "English"),
     ],
     "CEC": [
-        ("C-ECO", "Economics"),
         ("C-CIV", "Civics"),
+        ("C-ECO", "Economics"),
         ("C-COM", "Commerce"),
         ("C-ENG", "English"),
+        ("C-SAN", "Sanskrit"),
     ],
 }
 
@@ -186,32 +189,42 @@ def seed_reference(db: Session) -> dict:
     #   what AuthContext.class_scope/branch_scope is built from.
     #   `subject_id` must also be assigned: results entry checks BOTH the
     #   class and the subject (services.examinations.ensure_may_manage).
-    assignments = [
-        # legacy whole-branch faculty (unchanged)
-        ("faculty.mpc@demo.edu", "MPC-I-A", "M-MAT", "class_teacher"),
-        ("faculty.mpc@demo.edu", "MPC-II-A", "M-MAT", "subject_teacher"),
-        ("faculty.mpc@demo.edu", "MPC-II-A", "M-PHY", "subject_teacher"),
-        ("faculty.mpc@demo.edu", "MPC-I-A", "M-PHY", "subject_teacher"),
-        ("faculty.bipc@demo.edu", "BiPC-I-A", "B-BOT", "class_teacher"),
-        ("faculty.bipc@demo.edu", "BiPC-I-A", "B-ZOO", "subject_teacher"),
-        ("faculty.bipc@demo.edu", "BiPC-II-A", "B-BOT", "subject_teacher"),
-        ("faculty.bipc@demo.edu", "BiPC-II-A", "B-ZOO", "subject_teacher"),
-        # per-year faculty: MPC
-        ("faculty.mpc1@demo.edu", "MPC-I-A", "M-MAT", "class_teacher"),
-        ("faculty.mpc1@demo.edu", "MPC-I-A", "M-PHY", "subject_teacher"),
-        ("faculty.mpc2@demo.edu", "MPC-II-A", "M-MAT", "class_teacher"),
-        ("faculty.mpc2@demo.edu", "MPC-II-A", "M-PHY", "subject_teacher"),
-        # per-year faculty: BiPC
-        ("faculty.bipc1@demo.edu", "BiPC-I-A", "B-BOT", "class_teacher"),
-        ("faculty.bipc1@demo.edu", "BiPC-I-A", "B-ZOO", "subject_teacher"),
-        ("faculty.bipc2@demo.edu", "BiPC-II-A", "B-BOT", "class_teacher"),
-        ("faculty.bipc2@demo.edu", "BiPC-II-A", "B-ZOO", "subject_teacher"),
-        # per-year faculty: CEC
-        ("faculty.cec1@demo.edu", "CEC-I-A", "C-ECO", "class_teacher"),
-        ("faculty.cec1@demo.edu", "CEC-I-A", "C-CIV", "subject_teacher"),
-        ("faculty.cec2@demo.edu", "CEC-II-A", "C-ECO", "class_teacher"),
-        ("faculty.cec2@demo.edu", "CEC-II-A", "C-COM", "subject_teacher"),
-    ]
+    #   Every faculty is assigned ALL subjects taught in their class so
+    #   examination creation/results work for the full curriculum, not just
+    #   two subjects.
+    assignments: list[tuple[str, str, str, str]] = []
+    for code in branch_ids:
+        all_subjects = [s_code for s_code, _ in SUBJECTS[code]]
+        # legacy whole-branch faculty (both years) — if such an account exists
+        legacy_email = f"faculty.{code.lower()}@demo.edu"
+        if legacy_email in user_ids:
+            for section_name, _yos in SECTIONS:
+                class_key = f"{code}-{section_name}"
+                for i, s_code in enumerate(all_subjects):
+                    assignments.append(
+                        (legacy_email, class_key, s_code,
+                         "class_teacher" if i == 0 else "subject_teacher")
+                    )
+        # per-year faculty (one class each) — all subjects of that class
+        for section_name, _yos in SECTIONS:
+            per_year_email = f"faculty.{code.lower()}{1 if section_name.startswith('I-') else 2}@demo.edu"
+            if per_year_email not in user_ids:
+                continue
+            class_key = f"{code}-{section_name}"
+            for i, s_code in enumerate(all_subjects):
+                assignments.append(
+                    (per_year_email, class_key, s_code,
+                     "class_teacher" if i == 0 else "subject_teacher")
+                )
+    # de-duplicate (legacy and per-year loops can overlap on the same rows)
+    seen_assignments: set[tuple[str, str, str]] = set()
+    unique_assignments: list[tuple[str, str, str, str]] = []
+    for email, class_key, s_code, a_type in assignments:
+        key = (email, class_key, s_code)
+        if key not in seen_assignments:
+            seen_assignments.add(key)
+            unique_assignments.append((email, class_key, s_code, a_type))
+    assignments = unique_assignments
     for email, class_key, subject_code, a_type in assignments:
         exists = (
             db.query(FacultyAssignment)

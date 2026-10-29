@@ -97,7 +97,9 @@ def list_subjects(
     ctx: AuthContext = Depends(get_current_user),
 ) -> list[SubjectOut]:
     """Subjects for dropdowns. Faculty only see subjects of their assigned
-    branches (consistent with the class scoping above)."""
+    branches AND subjects they are actually assigned to teach (examination
+    creation checks the (class, subject) pair server-side, so the dropdown
+    must not offer subjects that would be rejected)."""
     q = db.query(Subject).filter(Subject.is_active.is_(True))
     if branch_id:
         q = q.filter(Subject.branch_id == branch_id)
@@ -105,5 +107,9 @@ def list_subjects(
         if not ctx.branch_scope:
             return []
         q = q.filter(Subject.branch_id.in_(list(ctx.branch_scope)))
+    if ctx.subject_scope is not None:
+        if not ctx.subject_scope:
+            return []
+        q = q.filter(Subject.id.in_(list(ctx.subject_scope)))
     rows = q.order_by(Subject.code).all()
     return [SubjectOut.model_validate(r) for r in rows]

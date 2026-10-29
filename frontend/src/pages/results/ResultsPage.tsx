@@ -6,7 +6,7 @@
  *   results become visible to parents/students
  * - opens directly when linked from the faculty dashboard (?exam=ID)
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { CheckCircle2, ClipboardList, Eye, EyeOff, Plus, RotateCcw, Save } from 'lucide-react';
 import { ApiError, get, post, put } from '@/shared/api/client';
@@ -52,6 +52,10 @@ export default function ResultsPage(): JSX.Element {
     Record<number, { marks: string; is_absent: boolean; remarks: string }>
   >({});
   const [busy, setBusy] = useState(false);
+  // Synchronous re-entrancy guard: `busy` state updates are async, so two
+  // clicks in the same tick would both see busy === false. The ref flips
+  // immediately, so a double-click can never fire two Save/Publish requests.
+  const busyRef = useRef(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -114,39 +118,58 @@ export default function ResultsPage(): JSX.Element {
   const canEdit = Boolean(detail?.can_edit) && canWrite;
 
   const save = async () => {
-    if (!detail) return;
+    if (!detail || busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     setActionError(null);
     setNotice(null);
     try {
-      const body = {
-        results: detail.roster.map((r) => ({
+      // Client-side validation (the server re-checks everything): marks must
+      // be numeric, non-negative and within the exam's maximum.
+      const max = Number(detail.examination.max_marks);
+      const rows = detail.roster.map((r) => {
+        const e = edits[r.student_id] ?? { marks: '', is_absent: false, remarks: '' };
+        let marks: number | null = null;
+        if (!e.is_absent && e.marks !== '') {
+          marks = Number(e.marks);
+          if (!Number.isFinite(marks)) {
+            throw new Error(`Marks for ${r.roll_number} must be a number.`);
+          }
+          if (marks < 0) {
+            throw new Error(`Marks for ${r.roll_number} cannot be negative.`);
+          }
+          if (marks > max) {
+            throw new Error(
+              `Marks for ${r.roll_number} exceed the maximum (${max}).`,
+            );
+          }
+        }
+        return {
           student_id: r.student_id,
-          marks_obtained: edits[r.student_id]?.is_absent
-            ? null
-            : edits[r.student_id]?.marks === ''
-              ? null
-              : edits[r.student_id]!.marks,
-          is_absent: edits[r.student_id]?.is_absent ?? false,
-          remarks: edits[r.student_id]?.remarks || null,
-        })),
-      };
+          marks_obtained: marks,
+          is_absent: e.is_absent,
+          remarks: e.remarks.trim() || null,
+        };
+      });
       const res = await put<SaveResultsResponse>(
         `/examinations/${detail.examination.id}/results`,
-        body,
+        { results: rows },
       );
       setNotice(`Saved ${res.saved} result${res.saved === 1 ? '' : 's'} (${res.entered}/${res.expected} entered).`);
       await loadDetail();
       await loadExams();
     } catch (err) {
-      setActionError(err instanceof ApiError ? `${err.message} (${err.code})` : 'Saving failed.');
+      // Entered marks are preserved: `edits` is untouched on failure.
+      setActionError(err instanceof ApiError ? `${err.message} (${err.code})` : err instanceof Error ? err.message : 'Saving failed.');
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };
 
   const publish = async () => {
-    if (!detail) return;
+    if (!detail || busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     setActionError(null);
     setNotice(null);
@@ -158,12 +181,14 @@ export default function ResultsPage(): JSX.Element {
     } catch (err) {
       setActionError(err instanceof ApiError ? `${err.message} (${err.code})` : 'Publish failed.');
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };
 
   const reopen = async () => {
-    if (!detail) return;
+    if (!detail || busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     setActionError(null);
     setNotice(null);
@@ -175,6 +200,7 @@ export default function ResultsPage(): JSX.Element {
     } catch (err) {
       setActionError(err instanceof ApiError ? `${err.message} (${err.code})` : 'Reopen failed.');
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };
@@ -423,6 +449,10 @@ function CreateExamForm({ onCreated }: { onCreated: () => void }) {
   const [maxMarks, setMaxMarks] = useState('100');
   const [passMarks, setPassMarks] = useState('35');
   const [busy, setBusy] = useState(false);
+  // Synchronous re-entrancy guard: React state updates are async, so two
+  // clicks in the same tick would both see busy === false. The ref flips
+  // immediately, so a double-click can never fire two POSTs.
+  const busyRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<string | null>(null);
 
@@ -454,13 +484,25 @@ function CreateExamForm({ onCreated }: { onCreated: () => void }) {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (classId === '' || subjectId === '') return;
+    if (classId === '' || subjectId === '' || busyRef.current) return;
+    // Client-side sanity check (server re-validates): pass marks ≤ max marks.
+    const max = Number(maxMarks);
+    const pass = Number(passMarks);
+    if (!Number.isFinite(max) || max <= 0) {
+      setError('Max marks must be a positive number.');
+      return;
+    }
+    if (!Number.isFinite(pass) || pass < 0 || pass > max) {
+      setError('Pass marks must be between 0 and the max marks.');
+      return;
+    }
+    busyRef.current = true;
     setBusy(true);
     setError(null);
     setCreated(null);
     try {
       const exam = await post<ExaminationOut>('/examinations', {
-        title,
+        title: title.trim(),
         class_section_id: classId,
         subject_id: subjectId,
         exam_type: examType,
@@ -474,6 +516,7 @@ function CreateExamForm({ onCreated }: { onCreated: () => void }) {
     } catch (err) {
       setError(err instanceof ApiError ? `${err.message} (${err.code})` : 'Could not create exam.');
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };
@@ -541,7 +584,7 @@ function CreateExamForm({ onCreated }: { onCreated: () => void }) {
             </option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.branch_code ?? ''} {c.year_of_study === 1 ? 'I' : 'II'}-{c.section_name}
+                {c.branch_code ?? ''}-{c.section_name}
               </option>
             ))}
           </select>

@@ -287,6 +287,20 @@ def test_faculty_cannot_submit_foreign_class(client, seeded, scope_tokens):
     )
     assert r.status_code == 403
 
+    # Same rejection when the payload rides along: the scope gate runs
+    # BEFORE any validation or write, so a body cannot bypass assignment.
+    r = client.post(
+        "/api/v1/attendance/submit",
+        params={
+            "class_id": seeded["class_ids"]["CEC-II-A"],
+            "date": SESSION_DAY,
+        },
+        json={"records": [{"student_id": 999999, "status": "present"}]},
+        headers=_h("faculty.cec1@demo.edu", scope_tokens),
+    )
+    assert r.status_code == 403
+    assert r.json()["error"]["code"] == "FORBIDDEN"
+
 
 def test_attendance_sessions_list_scoped(client, seeded, tokens, scope_tokens):
     """Each faculty's session list contains only their own class."""

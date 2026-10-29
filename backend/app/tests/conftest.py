@@ -135,7 +135,12 @@ def _seed_reference() -> None:
         math = Subject(code="M-MAT", name="Mathematics", branch_id=mpc.id)
         phys = Subject(code="M-PHY", name="Physics", branch_id=mpc.id)
         bot = Subject(code="B-BOT", name="Botany", branch_id=bipc.id)
-        db.add_all([math, phys, bot])
+        # Extra MPC subjects (appended AFTER the ids used by existing tests:
+        # M-MAT=1, M-PHY=2, B-BOT=3 stay stable).
+        chm = Subject(code="M-CHM", name="Chemistry", branch_id=mpc.id)
+        eng = Subject(code="M-ENG", name="English", branch_id=mpc.id)
+        san = Subject(code="M-SAN", name="Sanskrit", branch_id=mpc.id)
+        db.add_all([math, phys, bot, chm, eng, san])
         db.flush()
 
         # staff accounts
@@ -169,6 +174,17 @@ def _seed_reference() -> None:
                 assignment_type="subject_teacher",
             )
         )
+        # Full MPC I-year curriculum for `faculty` (Chemistry, English,
+        # Sanskrit) so per-subject examination tests can run.
+        for sub, a_type in ((chm, "subject_teacher"), (eng, "subject_teacher"),
+                            (san, "subject_teacher")):
+            db.add(
+                FacultyAssignment(
+                    user_id=faculty.id, class_section_id=mpc1.id,
+                    subject_id=sub.id, academic_year_id=year.id,
+                    assignment_type=a_type,
+                )
+            )
         db.add(
             FacultyAssignment(
                 user_id=faculty_b.id, class_section_id=bipc1.id,

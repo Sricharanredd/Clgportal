@@ -224,20 +224,8 @@ def _get_or_create_session(
     return session
 
 
-def save_records(
-    db: Session,
-    *,
-    class_id: int,
-    day: date,
-    records: list[dict],
-    ctx: AuthContext,
-) -> SaveRecordsResponse:
-    """Upsert marks into a draft session (validated against the roster)."""
-    ensure_faculty_may_manage(db, ctx, class_id)
-    if day > date.today():
-        raise AppError(400, "FUTURE_DATE", "Attendance cannot be marked for a future date.")
-
-    roster_ids = {s.id for s in _roster(db, class_id)}
+def _validate_records(records: list[dict], roster_ids: set[int]) -> None:
+    """Payload rules shared by save and submit: status / enrolment / duplicates."""
     seen: set[int] = set()
     for rec in records:
         sid = rec["student_id"]
@@ -254,13 +242,20 @@ def save_records(
             raise AppError(409, "DUPLICATE_RECORD", f"Duplicate entry for student {sid}.")
         seen.add(sid)
 
-    session = _get_or_create_session(db, class_id, day, ctx)
 
+def _upsert_records(
+    db: Session, session: AttendanceSession, records: list[dict], ctx: AuthContext
+) -> None:
+    """Insert or update one row per student — idempotent upsert.
+
+    The DB unique constraint (session_id, student_id) is the final backstop
+    against duplicate records for the same class/date/session. Flushes but
+    does NOT commit: callers decide when the transaction completes.
+    """
     existing = {
         r.student_id: r
         for r in db.query(AttendanceRecord).filter(AttendanceRecord.session_id == session.id)
     }
-    saved = 0
     for rec in records:
         row = existing.get(rec["student_id"])
         if row is None:
@@ -273,7 +268,6 @@ def save_records(
                     remarks=rec.get("remarks"),
                 )
             )
-            saved += 1
         else:
             if (
                 session.status == "submitted"
@@ -287,7 +281,27 @@ def save_records(
             row.status = rec["status"]
             row.marked_by = ctx.user_id
             row.remarks = rec.get("remarks")
-            saved += 1
+    db.flush()
+
+
+def save_records(
+    db: Session,
+    *,
+    class_id: int,
+    day: date,
+    records: list[dict],
+    ctx: AuthContext,
+) -> SaveRecordsResponse:
+    """Upsert marks into a draft session (validated against the roster)."""
+    ensure_faculty_may_manage(db, ctx, class_id)
+    if day > date.today():
+        raise AppError(400, "FUTURE_DATE", "Attendance cannot be marked for a future date.")
+
+    roster_ids = {s.id for s in _roster(db, class_id)}
+    _validate_records(records, roster_ids)
+
+    session = _get_or_create_session(db, class_id, day, ctx)
+    _upsert_records(db, session, records, ctx)
     db.commit()
 
     roster_size = len(roster_ids)
@@ -298,7 +312,7 @@ def save_records(
         or 0
     )
     return SaveRecordsResponse(
-        saved=saved,
+        saved=len(records),
         status=session.status,
         marked=int(marked),
         roster_size=roster_size,
@@ -306,23 +320,51 @@ def save_records(
 
 
 def submit_session(
-    db: Session, *, class_id: int, day: date, ctx: AuthContext
+    db: Session, *, class_id: int, day: date, records: list[dict] | None, ctx: AuthContext
 ) -> SubmitResponse:
-    """Finalize: every roster student must be marked first."""
+    """Finalize a session — optionally saving the marks in the same request.
+
+    `records` (the same payload `save_records` accepts) lets faculty Submit
+    directly WITHOUT a prior draft: the marks are validated, upserted and the
+    session is submitted in ONE transaction. When `records` is None the old
+    draft flow applies: only a fully-marked session saved earlier can be
+    submitted. Incomplete attendance is rejected before anything is written.
+    """
     ensure_faculty_may_manage(db, ctx, class_id)
-    session = _session_for(db, class_id, day)
-    roster_size = len(_roster(db, class_id))
+    if day > date.today():
+        raise AppError(400, "FUTURE_DATE", "Attendance cannot be marked for a future date.")
+
+    roster_ids = {s.id for s in _roster(db, class_id)}
+    roster_size = len(roster_ids)
     if roster_size == 0:
         raise AppError(422, "EMPTY_ROSTER", "This class has no enrolled students.")
-    if session is None:
+
+    session = _session_for(db, class_id, day)
+    if session is not None and session.status == "submitted":
+        raise AppError(409, "ALREADY_SUBMITTED", "Attendance is already submitted.")
+
+    if records is not None:
+        # Direct submission: everything is validated BEFORE any write.
+        _validate_records(records, roster_ids)
+        submitted_ids = {r["student_id"] for r in records}
+        if not roster_ids.issubset(submitted_ids):
+            raise AppError(
+                409,
+                "INCOMPLETE",
+                f"Mark all students before submitting "
+                f"({len(submitted_ids)}/{roster_size} marked).",
+            )
+        # Create the draft session if needed, then upsert the marks — the
+        # status flip and the rows land in the same transaction below.
+        session = _get_or_create_session(db, class_id, day, ctx)
+        _upsert_records(db, session, records, ctx)
+    elif session is None:
         # Nothing saved yet ⇒ nothing marked: submitting is incomplete, not missing.
         raise AppError(
             409,
             "INCOMPLETE",
             f"Mark all students before submitting (0/{roster_size} marked).",
         )
-    if session.status == "submitted":
-        raise AppError(409, "ALREADY_SUBMITTED", "Attendance is already submitted.")
 
     marked = (
         db.query(func.count(AttendanceRecord.id))
