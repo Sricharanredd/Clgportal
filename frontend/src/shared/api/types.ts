@@ -583,6 +583,21 @@ export interface ParentChildSummary {
   academic_year: string | null;
 }
 
+/** One row in the open (demo) parent directory. */
+export interface ParentDirectoryItem {
+  student_id: number;
+  roll_number: string;
+  full_name: string;
+  branch_id: number;
+  branch_code: string;
+  branch_name: string;
+  class_section: string | null;
+  academic_year: string | null;
+  status: string;
+}
+
+export type ParentDirectoryPage = Page<ParentDirectoryItem>;
+
 export interface ParentSessionResponse {
   access_token: string;
   token_type: string;

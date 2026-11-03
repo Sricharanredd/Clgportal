@@ -34,6 +34,9 @@ class Permission(str, enum.Enum):
     RESULTS_PUBLISH = "results:publish"
     # Fees
     FEES_READ = "fees:read"
+    # Scoped, READ-ONLY fee access: only students inside the caller's
+    # class/branch scope (granted to faculty). Never grants payments.
+    FEES_READ_SCOPED = "fees:read_scoped"
     PAYMENTS_READ = "payments:read"
     PAYMENTS_WRITE = "payments:write"
     FEES_AUDIT_READ = "fees:audit:read"
@@ -110,6 +113,10 @@ ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
             Permission.RESULTS_READ.value,
             Permission.RESULTS_WRITE.value,
             Permission.ANNOUNCEMENTS_READ.value,
+            # Read-only, scope-checked fee visibility for their own classes.
+            # Deliberately NOT fees:read (whole-college totals) and never
+            # payments:read/payments:write.
+            Permission.FEES_READ_SCOPED.value,
         }
     ),
     # Read-only principals (parent verification / student session).

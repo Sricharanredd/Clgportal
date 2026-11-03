@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     # Parent verification
     parent_verification_enabled: bool = True
 
+    # Open (no-login) parent browsing — DEMO ONLY. When true, the
+    # flag-gated GET /parent/demo/* routes list every student and expose
+    # read-only profile/attendance/results/fees. Never enable in production.
+    demo_open_parent: bool = False
+
     @field_validator("jwt_secret")
     @classmethod
     def _warn_weak_secret(cls, value: str) -> str:

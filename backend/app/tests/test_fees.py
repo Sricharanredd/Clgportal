@@ -242,6 +242,64 @@ def test_payment_history_pagination(client, tokens):
     assert data["total"] >= 2
 
 
+def test_faculty_reads_fees_for_own_class(client, tokens):
+    """Faculty get READ-ONLY fee detail for students in their own class."""
+    sid = _student_id(client, tokens["faculty"], "MPC26001")
+
+    r = client.get(f"/api/v1/fees/students/{sid}", headers=auth(tokens["faculty"]))
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert data["student_id"] == sid
+    assert data["obligations"], "faculty should see the obligation"
+    # Read-only: the payment button flag must stay false without payments:write.
+    assert all(o["can_record_payment"] is False for o in data["obligations"])
+    # Payment history is visible but never exposes who recorded it to faculty.
+    assert isinstance(data["payments"], list)
+
+
+def test_faculty_profile_includes_fee_block(client, tokens):
+    """The profile's `fee` block is populated for faculty (fees:read_scoped)."""
+    sid = _student_id(client, tokens["faculty"], "MPC26003")
+    r = client.get(f"/api/v1/students/{sid}", headers=auth(tokens["faculty"]))
+    assert r.status_code == 200, r.text
+    fee = r.json()["fee"]
+    assert fee is not None
+    assert fee["total_amount"] == "10000.00"
+    assert fee["pending_amount"] == "10000.00"
+    assert fee["status"] == "active"
+
+
+def test_faculty_cannot_see_other_class_fees(client, tokens):
+    """Cross-class access is a 404 (scope is enforced server-side)."""
+    bipc_id = _student_id(client, tokens["principal"], "BIP26001")
+    r = client.get(
+        f"/api/v1/fees/students/{bipc_id}", headers=auth(tokens["faculty"])
+    )
+    assert r.status_code == 404
+    assert r.json()["error"]["code"] == "NOT_FOUND"
+
+
+def test_faculty_cannot_record_or_see_college_fees(client, tokens):
+    """Scoped read must never become a write or a whole-college total."""
+    # No payments:write → recording a payment is forbidden.
+    r = client.post(
+        "/api/v1/fees/payments",
+        json={
+            "obligation_id": 1,
+            "amount": "10.00",
+            "method": "cash",
+            "idempotency_key": str(uuid.uuid4()),
+        },
+        headers=auth(tokens["faculty"]),
+    )
+    assert r.status_code == 403
+
+    # fees:read_scoped does NOT unlock the collection summary.
+    assert client.get(
+        "/api/v1/fees/summary", headers=auth(tokens["faculty"])
+    ).status_code == 403
+
+
 def test_parent_cannot_record_payment(client, tokens):
     """Read-only principals have no payment endpoints available."""
     lookup = client.post(

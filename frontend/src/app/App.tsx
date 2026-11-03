@@ -1,6 +1,7 @@
 import { RequireAuth, RequirePermission } from '@/app/guards';
 import { AuthProvider } from '@/app/AuthContext';
 import { StatePanel } from '@/components/ui/States';
+import { ToastProvider } from '@/components/ui/Toast';
 import AppLayout from '@/layouts/AppLayout';
 import DashboardPage from '@/pages/dashboard/DashboardPage';
 import HomePage from '@/pages/home/HomePage';
@@ -18,7 +19,8 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 export default function App(): JSX.Element {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <ToastProvider>
+        <BrowserRouter>
         <Routes>
           {/* Public routes (no authentication) */}
           <Route path="/" element={<HomePage />} />
@@ -62,7 +64,8 @@ export default function App(): JSX.Element {
             }
           />
         </Routes>
-      </BrowserRouter>
+        </BrowserRouter>
+      </ToastProvider>
     </AuthProvider>
   );
 }

@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.core.config import get_settings
 from app.core.errors import AppError
 from app.core.security import create_access_token, decode_token, verify_password
-from app.models.academic import Branch, ClassSection
+from app.models.academic import AcademicYear, Branch, ClassSection
 from app.models.student import Enrollment, Parent, Student, StudentParentLink
 from app.schemas.parent import MaskedStudent, ParentChildSummary
 
@@ -218,6 +218,63 @@ def list_children(db: Session, parent_id: int) -> list[ParentChildSummary]:
     return out
 
 
+def list_directory(
+    db: Session,
+    *,
+    q: str | None = None,
+    branch_id: int | None = None,
+    page: int = 1,
+    page_size: int = 12,
+) -> tuple[list[tuple[Student, Branch, ClassSection | None, AcademicYear | None]], int]:
+    """Open parent directory (DEMO ONLY — flag-gated by the router).
+
+    Returns active students with their current enrolment. Name/roll search
+    is literal (wildcards escaped) and branch filtering is optional.
+    Deliberately excludes every sensitive column: no DOB, contacts, guardian
+    or fee data — those stay on the per-student read-only endpoints.
+    """
+    from sqlalchemy import func, or_
+
+    query = (
+        db.query(Student, Branch, ClassSection, AcademicYear)
+        .join(Branch, Branch.id == Student.branch_id)
+        .outerjoin(
+            Enrollment,
+            (Enrollment.student_id == Student.id) & (Enrollment.status == "active"),
+        )
+        .outerjoin(ClassSection, ClassSection.id == Enrollment.class_section_id)
+        .outerjoin(AcademicYear, AcademicYear.id == Enrollment.academic_year_id)
+        .filter(Student.is_active.is_(True))
+        .filter(or_(AcademicYear.id.is_(None), AcademicYear.is_current.is_(True)))
+    )
+    if branch_id:
+        query = query.filter(Student.branch_id == branch_id)
+    if q and q.strip():
+        pattern = f"%{_escape_like(q.strip())}%"
+        query = query.filter(
+            or_(
+                Student.roll_number.ilike(pattern, escape="\\"),
+                Student.first_name.ilike(pattern, escape="\\"),
+                Student.last_name.ilike(pattern, escape="\\"),
+                func.concat(Student.first_name, " ", Student.last_name).ilike(
+                    pattern, escape="\\"
+                ),
+            )
+        )
+
+    total = (
+        query.with_entities(func.count(func.distinct(Student.id))).scalar() or 0
+    )
+    rows = (
+        query.with_entities(Student, Branch, ClassSection, AcademicYear)
+        .order_by(Student.roll_number)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    return rows, int(total)
+
+
 __all__ = [
     "find_student",
     "search_students_by_name",
@@ -227,5 +284,6 @@ __all__ = [
     "verify_access_code",
     "issue_parent_token",
     "list_children",
+    "list_directory",
     "MaskedStudent",
 ]

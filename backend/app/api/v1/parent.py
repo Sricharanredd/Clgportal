@@ -224,8 +224,8 @@ def child_profile(
         guardian_name=student.guardian_name,
         is_active=student.is_active,
         attendance=attendance_summary(db, student_id),
-        published_results=_published_results(db, student_id, ctx),
-        fee=_fee_summary(db, student_id, ctx),
+        published_results=_published_results(db, student_id),
+        fee=_fee_summary(db, student_id),
     )
 
 
@@ -278,7 +278,7 @@ def child_results(
     ensure_student_visible(db, ctx, student_id)
     from app.api.v1.students import _published_results
 
-    return _published_results(db, student_id, ctx)
+    return _published_results(db, student_id)
 
 
 @router.get(
@@ -295,7 +295,7 @@ def child_fees(
     ensure_student_visible(db, ctx, student_id)
     from app.api.v1.students import _fee_summary
 
-    return _fee_summary(db, student_id, ctx)
+    return _fee_summary(db, student_id)
 
 
 def _require_parent(ctx: AuthContext) -> None:
