@@ -3,8 +3,7 @@ import { trust } from '../content';
 import Reveal from '../Reveal';
 
 /**
- * Trust & security note: parent records are read-only and only shown after
- * the college verifies them.
+ * Trust & security note. Copy is driven by DEMO_OPEN_PARENT (see content.ts).
  */
 export default function TrustNote(): JSX.Element {
   return (

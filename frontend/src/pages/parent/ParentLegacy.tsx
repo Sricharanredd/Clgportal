@@ -1,18 +1,21 @@
 /**
- * Parent portal — completely separate from the staff shell.
+ * Verified parent portal (kept as the fallback when DEMO_OPEN_PARENT=false).
  *
  * URL-driven flow (bookmarks and refresh work):
  *   /parent                    → branch + roll lookup (masked identity)
  *   /parent/student/:studentId → read-only tabs for one linked child
  *
  * Access policy: the backend decides whether an access code is required
- * (`verification_required` from /parent/lookup). In demo mode
+ * (`verification_required` from /parent/lookup). In the older demo mode
  * (PARENT_VERIFICATION_ENABLED=false on the server) the verify call is made
  * automatically without a code; in production the code form is shown and the
  * server re-checks it. Parent tokens are memory + sessionStorage (per-tab)
  * and are restarted (not refreshed) when they expire. The studentId in the
  * URL is NOT authorization — every read is re-checked server-side against
  * the parent's linked students.
+ *
+ * Do not delete this file: the open directory at /parent/students is a
+ * separate, flag-gated path. Turning VITE_DEMO_OPEN_PARENT off restores this.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -54,7 +57,7 @@ const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'announcements', label: 'Announcements' },
 ];
 
-export default function ParentPortal({ mode }: { mode: 'lookup' | 'student' }): JSX.Element {
+export default function ParentLegacy({ mode }: { mode: 'lookup' | 'student' }): JSX.Element {
   const navigate = useNavigate();
   const parentName = getParentName();
 

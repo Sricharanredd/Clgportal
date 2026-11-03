@@ -1,35 +1,4 @@
 /**
-
- * Public landing page for Prism College.
- *
- * UI only: no API calls, no auth logic, no route changes. The two actions
- * keep pointing at the existing routes — /admin/login (staff) and /parent.
- * All copy, stats and links live in ./content.ts; brand colours live in
- * src/index.css ("BRAND TOKENS").
- */
-import Navbar from './components/Navbar';
-import Hero from './components/Hero';
-import Stats from './components/Stats';
-import AudienceCards from './components/AudienceCards';
-import Features from './components/Features';
-import HowItWorks from './components/HowItWorks';
-import TrustNote from './components/TrustNote';
-import Footer from './components/Footer';
-
-export default function HomePage(): JSX.Element {
-  return (
-    <div className="min-h-screen bg-porcelain text-plum">
-      <Navbar />
-      <main>
-        <Hero />
-        <Stats />
-        <AudienceCards />
-        <Features />
-        <HowItWorks />
-        <TrustNote />
-      </main>
-      <Footer />
-=======
  * Redesigned College Management Portal Home Page
  *
  * Professional Blue + White College Website:
@@ -46,7 +15,8 @@ export default function HomePage(): JSX.Element {
  * - Professional blue-and-white styling (Navy, Royal Blue, Slate, Pure White)
  * - Clean footer and fully responsive across mobile, tablet, and desktop
  */
-import { Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
+import { DEMO_OPEN_PARENT } from "@/config/demo";
 import {
   GraduationCap,
   ShieldCheck,
@@ -73,9 +43,13 @@ import {
   Clock,
   BadgeCheck,
   ChevronRight,
-} from 'lucide-react';
+} from "lucide-react";
 
 export default function HomePage(): JSX.Element {
+  const parentTrust = DEMO_OPEN_PARENT
+    ? "Demo mode: parent records are read-only"
+    : "Parent records are read-only and shown only after college verification.";
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased">
       {/* TOP HEADER / ANNOUNCEMENT STRIP */}
@@ -84,18 +58,28 @@ export default function HomePage(): JSX.Element {
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5 text-blue-300">
               <BadgeCheck className="h-3.5 w-3.5 text-blue-400" />
-              <span>Affiliated with State Board of Intermediate Education (TSBIE)</span>
+              <span>
+                Affiliated with State Board of Intermediate Education (TSBIE)
+              </span>
             </span>
             <span className="hidden sm:inline text-slate-500">|</span>
-            <span className="hidden sm:inline">College Code: <strong className="text-white">PRSM-104</strong></span>
+            <span className="hidden sm:inline">
+              College Code: <strong className="text-white">PRSM-104</strong>
+            </span>
           </div>
           <div className="flex items-center gap-4 text-[11px]">
-            <a href="tel:+914023456789" className="flex items-center gap-1 text-slate-300 hover:text-white">
+            <a
+              href="tel:+914023456789"
+              className="flex items-center gap-1 text-slate-300 hover:text-white"
+            >
               <Phone className="h-3 w-3 text-blue-400" />
               <span>+91 (040) 2345-6789</span>
             </a>
             <span className="text-slate-600">|</span>
-            <a href="mailto:info@prismcollege.edu" className="flex items-center gap-1 text-slate-300 hover:text-white">
+            <a
+              href="mailto:info@prismcollege.edu"
+              className="flex items-center gap-1 text-slate-300 hover:text-white"
+            >
               <Mail className="h-3 w-3 text-blue-400" />
               <span>info@prismcollege.edu</span>
             </a>
@@ -123,19 +107,34 @@ export default function HomePage(): JSX.Element {
 
           {/* Nav Links */}
           <nav className="hidden items-center gap-6 md:flex">
-            <a href="#about" className="text-sm font-semibold text-slate-700 transition hover:text-blue-700">
+            <a
+              href="#about"
+              className="text-sm font-semibold text-slate-700 transition hover:text-blue-700"
+            >
               About College
             </a>
-            <a href="#branches" className="text-sm font-semibold text-slate-700 transition hover:text-blue-700">
+            <a
+              href="#branches"
+              className="text-sm font-semibold text-slate-700 transition hover:text-blue-700"
+            >
               Branches
             </a>
-            <a href="#facilities" className="text-sm font-semibold text-slate-700 transition hover:text-blue-700">
+            <a
+              href="#facilities"
+              className="text-sm font-semibold text-slate-700 transition hover:text-blue-700"
+            >
               Campus Facilities
             </a>
-            <a href="#services" className="text-sm font-semibold text-slate-700 transition hover:text-blue-700">
+            <a
+              href="#services"
+              className="text-sm font-semibold text-slate-700 transition hover:text-blue-700"
+            >
               Services
             </a>
-            <a href="#contact" className="text-sm font-semibold text-slate-700 transition hover:text-blue-700">
+            <a
+              href="#contact"
+              className="text-sm font-semibold text-slate-700 transition hover:text-blue-700"
+            >
               Contact
             </a>
           </nav>
@@ -178,7 +177,9 @@ export default function HomePage(): JSX.Element {
             {/* Demo College Crest / Badge */}
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-400/40 bg-blue-950/80 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-blue-200 shadow-md backdrop-blur-sm">
               <span className="flex h-2 w-2 rounded-full bg-blue-400" />
-              <span>Co-Educational Intermediate (+2) Institution • Hyderabad</span>
+              <span>
+                Co-Educational Intermediate (+2) Institution • Hyderabad
+              </span>
             </div>
 
             {/* College Name & Headline */}
@@ -188,9 +189,13 @@ export default function HomePage(): JSX.Element {
 
             {/* Tagline / Description */}
             <p className="mt-4 max-w-2xl text-base font-normal leading-relaxed text-slate-200 drop-shadow sm:text-lg">
-              Welcome to the official campus management portal. Empowering over 1,200 intermediate students
-              across <strong className="font-semibold text-white">MPC, BiPC, and CEC</strong> streams with academic
-              rigor, expert faculty guidance, and integrated digital services for staff and parents.
+              Welcome to the official campus management portal. Empowering over
+              1,200 intermediate students across{" "}
+              <strong className="font-semibold text-white">
+                MPC, BiPC, and CEC
+              </strong>{" "}
+              streams with academic rigor, expert faculty guidance, and
+              integrated digital services for staff and parents.
             </p>
 
             {/* Two Prominent Action Buttons on the Hero Image */}
@@ -204,8 +209,12 @@ export default function HomePage(): JSX.Element {
                   <ShieldCheck className="h-5 w-5" />
                 </div>
                 <div className="text-left">
-                  <span className="block text-xs font-medium text-blue-200">Authorized Access</span>
-                  <span className="block text-sm font-extrabold sm:text-base">Admin — Staff Login</span>
+                  <span className="block text-xs font-medium text-blue-200">
+                    Authorized Access
+                  </span>
+                  <span className="block text-sm font-extrabold sm:text-base">
+                    Admin — Staff Login
+                  </span>
                 </div>
                 <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
               </Link>
@@ -219,8 +228,14 @@ export default function HomePage(): JSX.Element {
                   <UserRound className="h-5 w-5" />
                 </div>
                 <div className="text-left">
-                  <span className="block text-xs font-medium text-slate-500">Self-Service Lookup</span>
-                  <span className="block text-sm font-extrabold text-blue-950 sm:text-base">Parent — Parent Portal</span>
+                  <span className="block text-xs font-medium text-slate-500">
+                    {DEMO_OPEN_PARENT
+                      ? "Student directory"
+                      : "Self-Service Lookup"}
+                  </span>
+                  <span className="block text-sm font-extrabold text-blue-950 sm:text-base">
+                    Parent — Parent Portal
+                  </span>
                 </div>
                 <ChevronRight className="h-5 w-5 text-blue-700 transition-transform group-hover:translate-x-1" />
               </Link>
@@ -234,7 +249,7 @@ export default function HomePage(): JSX.Element {
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-900/70 px-2.5 py-1 backdrop-blur-sm">
                 <CheckCircle2 className="h-3.5 w-3.5 text-blue-400" />
-                <span>Passwordless Parent Access (Branch + Roll No.)</span>
+                <span>{parentTrust}</span>
               </span>
             </div>
           </div>
@@ -244,20 +259,36 @@ export default function HomePage(): JSX.Element {
         <div className="relative border-t border-white/10 bg-slate-950/80 backdrop-blur-md">
           <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-slate-800 py-4 text-center sm:grid-cols-4">
             <div className="px-4 py-2">
-              <div className="text-2xl font-black text-white sm:text-3xl">18+</div>
-              <div className="text-xs font-medium text-slate-400">Years of Academic Excellence</div>
+              <div className="text-2xl font-black text-white sm:text-3xl">
+                18+
+              </div>
+              <div className="text-xs font-medium text-slate-400">
+                Years of Academic Excellence
+              </div>
             </div>
             <div className="px-4 py-2">
-              <div className="text-2xl font-black text-blue-400 sm:text-3xl">1,200+</div>
-              <div className="text-xs font-medium text-slate-400">Enrolled Intermediate Students</div>
+              <div className="text-2xl font-black text-blue-400 sm:text-3xl">
+                1,200+
+              </div>
+              <div className="text-xs font-medium text-slate-400">
+                Enrolled Intermediate Students
+              </div>
             </div>
             <div className="px-4 py-2">
-              <div className="text-2xl font-black text-white sm:text-3xl">98.4%</div>
-              <div className="text-xs font-medium text-slate-400">State Board Pass Percentage</div>
+              <div className="text-2xl font-black text-white sm:text-3xl">
+                98.4%
+              </div>
+              <div className="text-xs font-medium text-slate-400">
+                State Board Pass Percentage
+              </div>
             </div>
             <div className="px-4 py-2">
-              <div className="text-2xl font-black text-blue-400 sm:text-3xl">100%</div>
-              <div className="text-xs font-medium text-slate-400">Digital Attendance &amp; Records</div>
+              <div className="text-2xl font-black text-blue-400 sm:text-3xl">
+                100%
+              </div>
+              <div className="text-xs font-medium text-slate-400">
+                Digital Attendance &amp; Records
+              </div>
             </div>
           </div>
         </div>
@@ -275,8 +306,9 @@ export default function HomePage(): JSX.Element {
               About Our College
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-base text-slate-600">
-              Prism Intermediate College is dedicated to providing comprehensive higher secondary education,
-              fostering foundational knowledge for competitive entrance examinations and professional careers.
+              Prism Intermediate College is dedicated to providing comprehensive
+              higher secondary education, fostering foundational knowledge for
+              competitive entrance examinations and professional careers.
             </p>
           </div>
 
@@ -290,15 +322,21 @@ export default function HomePage(): JSX.Element {
                     <Building2 className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900">Prism Junior College</h3>
-                    <p className="text-xs font-medium text-blue-700">College Code: PRSM-104 • TSBIE Affiliated</p>
+                    <h3 className="text-lg font-bold text-slate-900">
+                      Prism Junior College
+                    </h3>
+                    <p className="text-xs font-medium text-blue-700">
+                      College Code: PRSM-104 • TSBIE Affiliated
+                    </p>
                   </div>
                 </div>
 
                 <p className="mt-5 text-sm leading-relaxed text-slate-600">
-                  Established in 2008, Prism Intermediate College operates a peaceful 12-acre campus in Hyderabad.
-                  Our institution provides targeted preparation for state board examinations combined with focused
-                  mentorship for national entrance tests including JEE, EAMCET, NEET, and CA-Foundation.
+                  Established in 2008, Prism Intermediate College operates a
+                  peaceful 12-acre campus in Hyderabad. Our institution provides
+                  targeted preparation for state board examinations combined
+                  with focused mentorship for national entrance tests including
+                  JEE, EAMCET, NEET, and CA-Foundation.
                 </p>
 
                 {/* Specific Information Points */}
@@ -306,9 +344,12 @@ export default function HomePage(): JSX.Element {
                   <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs">
                     <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-blue-700" />
                     <div>
-                      <span className="block text-xs font-bold text-slate-900">Campus Location</span>
+                      <span className="block text-xs font-bold text-slate-900">
+                        Campus Location
+                      </span>
                       <span className="text-xs text-slate-600">
-                        Knowledge Park, Cyber City Corridor, Hyderabad, Telangana – 500081
+                        Knowledge Park, Cyber City Corridor, Hyderabad,
+                        Telangana – 500081
                       </span>
                     </div>
                   </div>
@@ -316,9 +357,12 @@ export default function HomePage(): JSX.Element {
                   <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs">
                     <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-blue-700" />
                     <div>
-                      <span className="block text-xs font-bold text-slate-900">Established Year</span>
+                      <span className="block text-xs font-bold text-slate-900">
+                        Established Year
+                      </span>
                       <span className="text-xs text-slate-600">
-                        Founded in 2008 • Over 18 consecutive years of academic success
+                        Founded in 2008 • Over 18 consecutive years of academic
+                        success
                       </span>
                     </div>
                   </div>
@@ -326,9 +370,12 @@ export default function HomePage(): JSX.Element {
                   <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs">
                     <Users className="mt-0.5 h-5 w-5 shrink-0 text-blue-700" />
                     <div>
-                      <span className="block text-xs font-bold text-slate-900">Student Strength</span>
+                      <span className="block text-xs font-bold text-slate-900">
+                        Student Strength
+                      </span>
                       <span className="text-xs text-slate-600">
-                        1,200+ Active Intermediate Students across 1st &amp; 2nd Year Sections
+                        1,200+ Active Intermediate Students across 1st &amp; 2nd
+                        Year Sections
                       </span>
                     </div>
                   </div>
@@ -337,10 +384,14 @@ export default function HomePage(): JSX.Element {
 
               {/* Demo Notice */}
               <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50/80 p-4">
-                <span className="text-xs font-bold text-blue-900">Campus Portal Access:</span>
+                <span className="text-xs font-bold text-blue-900">
+                  Campus Portal Access:
+                </span>
                 <p className="mt-1 text-xs text-blue-800">
-                  Staff sign in using assigned college emails. Parents can directly look up student records with
-                  branch and roll numbers (e.g. <span className="font-mono font-semibold">MPC25001</span>).
+                  Staff sign in using assigned college emails. Parents can
+                  directly look up student records with branch and roll numbers
+                  (e.g.{" "}
+                  <span className="font-mono font-semibold">MPC25001</span>).
                 </p>
               </div>
             </div>
@@ -348,9 +399,12 @@ export default function HomePage(): JSX.Element {
             {/* Right Column: Available Branches & Academic Streams */}
             <div id="branches" className="space-y-6 lg:col-span-7">
               <div>
-                <h3 className="text-xl font-bold text-slate-900">Available Academic Branches</h3>
+                <h3 className="text-xl font-bold text-slate-900">
+                  Available Academic Branches
+                </h3>
                 <p className="text-xs text-slate-600">
-                  Specialized intermediate programs tailored for engineering, healthcare, and commerce pathways:
+                  Specialized intermediate programs tailored for engineering,
+                  healthcare, and commerce pathways:
                 </p>
               </div>
 
@@ -361,13 +415,18 @@ export default function HomePage(): JSX.Element {
                     <span className="rounded-md bg-blue-100 px-2.5 py-1 text-xs font-extrabold text-blue-900">
                       BRANCH 1
                     </span>
-                    <span className="text-xs font-semibold text-slate-500">450 Students</span>
+                    <span className="text-xs font-semibold text-slate-500">
+                      450 Students
+                    </span>
                   </div>
                   <h4 className="mt-3 text-lg font-bold text-slate-900">MPC</h4>
-                  <p className="text-xs font-semibold text-blue-700">Mathematics, Physics, Chemistry</p>
+                  <p className="text-xs font-semibold text-blue-700">
+                    Mathematics, Physics, Chemistry
+                  </p>
                   <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                    Pre-engineering curriculum focused on calculus, physical sciences, and analytical foundations
-                    for IIT-JEE and EAMCET entrance success.
+                    Pre-engineering curriculum focused on calculus, physical
+                    sciences, and analytical foundations for IIT-JEE and EAMCET
+                    entrance success.
                   </p>
                 </div>
 
@@ -377,13 +436,20 @@ export default function HomePage(): JSX.Element {
                     <span className="rounded-md bg-blue-100 px-2.5 py-1 text-xs font-extrabold text-blue-900">
                       BRANCH 2
                     </span>
-                    <span className="text-xs font-semibold text-slate-500">380 Students</span>
+                    <span className="text-xs font-semibold text-slate-500">
+                      380 Students
+                    </span>
                   </div>
-                  <h4 className="mt-3 text-lg font-bold text-slate-900">BiPC</h4>
-                  <p className="text-xs font-semibold text-blue-700">Biology, Physics, Chemistry</p>
+                  <h4 className="mt-3 text-lg font-bold text-slate-900">
+                    BiPC
+                  </h4>
+                  <p className="text-xs font-semibold text-blue-700">
+                    Biology, Physics, Chemistry
+                  </p>
                   <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                    Pre-medical stream covering Botany, Zoology, organic chemistry, and cellular biology for NEET
-                    and allied health sciences.
+                    Pre-medical stream covering Botany, Zoology, organic
+                    chemistry, and cellular biology for NEET and allied health
+                    sciences.
                   </p>
                 </div>
 
@@ -393,13 +459,18 @@ export default function HomePage(): JSX.Element {
                     <span className="rounded-md bg-blue-100 px-2.5 py-1 text-xs font-extrabold text-blue-900">
                       BRANCH 3
                     </span>
-                    <span className="text-xs font-semibold text-slate-500">260 Students</span>
+                    <span className="text-xs font-semibold text-slate-500">
+                      260 Students
+                    </span>
                   </div>
                   <h4 className="mt-3 text-lg font-bold text-slate-900">CEC</h4>
-                  <p className="text-xs font-semibold text-blue-700">Civics, Economics, Commerce</p>
+                  <p className="text-xs font-semibold text-blue-700">
+                    Civics, Economics, Commerce
+                  </p>
                   <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                    Business and corporate stream emphasizing financial accounting, microeconomics, and Indian polity
-                    for CA-Foundation and law careers.
+                    Business and corporate stream emphasizing financial
+                    accounting, microeconomics, and Indian polity for
+                    CA-Foundation and law careers.
                   </p>
                 </div>
 
@@ -409,13 +480,18 @@ export default function HomePage(): JSX.Element {
                     <span className="rounded-md bg-blue-100 px-2.5 py-1 text-xs font-extrabold text-blue-900">
                       BRANCH 4
                     </span>
-                    <span className="text-xs font-semibold text-slate-500">150 Students</span>
+                    <span className="text-xs font-semibold text-slate-500">
+                      150 Students
+                    </span>
                   </div>
                   <h4 className="mt-3 text-lg font-bold text-slate-900">MEC</h4>
-                  <p className="text-xs font-semibold text-blue-700">Mathematics, Economics, Commerce</p>
+                  <p className="text-xs font-semibold text-blue-700">
+                    Mathematics, Economics, Commerce
+                  </p>
                   <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                    Quantitative commerce combining advanced mathematics with financial economics for actuarial
-                    and business management paths.
+                    Quantitative commerce combining advanced mathematics with
+                    financial economics for actuarial and business management
+                    paths.
                   </p>
                 </div>
               </div>
@@ -432,7 +508,8 @@ export default function HomePage(): JSX.Element {
                 Campus Facilities
               </h3>
               <p className="mx-auto mt-2 max-w-xl text-xs text-slate-600 sm:text-sm">
-                Equipped with modern facilities to support both scientific inquiry and overall student well-being:
+                Equipped with modern facilities to support both scientific
+                inquiry and overall student well-being:
               </p>
             </div>
 
@@ -441,9 +518,12 @@ export default function HomePage(): JSX.Element {
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-900 text-white">
                   <Microscope className="h-5 w-5" />
                 </div>
-                <h4 className="mt-3 text-base font-bold text-slate-900">Science Laboratories</h4>
+                <h4 className="mt-3 text-base font-bold text-slate-900">
+                  Science Laboratories
+                </h4>
                 <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
-                  Fully furnished Physics, Chemistry, Botany, and Zoology practical laboratories compliant with state board standards.
+                  Fully furnished Physics, Chemistry, Botany, and Zoology
+                  practical laboratories compliant with state board standards.
                 </p>
               </div>
 
@@ -451,9 +531,13 @@ export default function HomePage(): JSX.Element {
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-900 text-white">
                   <Laptop className="h-5 w-5" />
                 </div>
-                <h4 className="mt-3 text-base font-bold text-slate-900">Computer Center</h4>
+                <h4 className="mt-3 text-base font-bold text-slate-900">
+                  Computer Center
+                </h4>
                 <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
-                  Air-conditioned computing lab equipped with high-speed internet and practical workstations for computer science courses.
+                  Air-conditioned computing lab equipped with high-speed
+                  internet and practical workstations for computer science
+                  courses.
                 </p>
               </div>
 
@@ -461,9 +545,12 @@ export default function HomePage(): JSX.Element {
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-900 text-white">
                   <Library className="h-5 w-5" />
                 </div>
-                <h4 className="mt-3 text-base font-bold text-slate-900">Central Digital Library</h4>
+                <h4 className="mt-3 text-base font-bold text-slate-900">
+                  Central Digital Library
+                </h4>
                 <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
-                  Over 15,000 reference volumes, competitive examination guides, academic journals, and a quiet reading hall.
+                  Over 15,000 reference volumes, competitive examination guides,
+                  academic journals, and a quiet reading hall.
                 </p>
               </div>
 
@@ -471,9 +558,12 @@ export default function HomePage(): JSX.Element {
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-900 text-white">
                   <Trophy className="h-5 w-5" />
                 </div>
-                <h4 className="mt-3 text-base font-bold text-slate-900">Sports &amp; Athletics</h4>
+                <h4 className="mt-3 text-base font-bold text-slate-900">
+                  Sports &amp; Athletics
+                </h4>
                 <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
-                  Dedicated playground for basketball, volleyball, cricket nets, and indoor sports facilities promoting physical health.
+                  Dedicated playground for basketball, volleyball, cricket nets,
+                  and indoor sports facilities promoting physical health.
                 </p>
               </div>
 
@@ -481,9 +571,12 @@ export default function HomePage(): JSX.Element {
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-900 text-white">
                   <Presentation className="h-5 w-5" />
                 </div>
-                <h4 className="mt-3 text-base font-bold text-slate-900">Seminar &amp; AV Halls</h4>
+                <h4 className="mt-3 text-base font-bold text-slate-900">
+                  Seminar &amp; AV Halls
+                </h4>
                 <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
-                  Multimedia auditoriums used for visiting faculty lectures, competitive coaching seminars, and parent orientations.
+                  Multimedia auditoriums used for visiting faculty lectures,
+                  competitive coaching seminars, and parent orientations.
                 </p>
               </div>
 
@@ -491,9 +584,12 @@ export default function HomePage(): JSX.Element {
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-900 text-white">
                   <Bus className="h-5 w-5" />
                 </div>
-                <h4 className="mt-3 text-base font-bold text-slate-900">Campus Transport Fleet</h4>
+                <h4 className="mt-3 text-base font-bold text-slate-900">
+                  Campus Transport Fleet
+                </h4>
                 <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
-                  Reliable college buses operating across 28+ designated routes in the twin cities ensuring safe daily commuting.
+                  Reliable college buses operating across 28+ designated routes
+                  in the twin cities ensuring safe daily commuting.
                 </p>
               </div>
             </div>
@@ -502,7 +598,10 @@ export default function HomePage(): JSX.Element {
       </section>
 
       {/* SECTION: OUR COLLEGE SERVICES */}
-      <section id="services" className="scroll-mt-20 border-t border-slate-200 bg-slate-100/70 py-16 sm:py-20">
+      <section
+        id="services"
+        className="scroll-mt-20 border-t border-slate-200 bg-slate-100/70 py-16 sm:py-20"
+      >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* Section Header */}
           <div className="text-center">
@@ -513,7 +612,8 @@ export default function HomePage(): JSX.Element {
               Our College Services
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-base text-slate-600">
-              Explore the core administrative and academic modules powered by the College Management Portal:
+              Explore the core administrative and academic modules powered by
+              the College Management Portal:
             </p>
           </div>
 
@@ -529,8 +629,8 @@ export default function HomePage(): JSX.Element {
                   Academic Management
                 </h3>
                 <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                  Curriculum planning, subject allocation, section assignments, and faculty timetable scheduling
-                  across all academic terms.
+                  Curriculum planning, subject allocation, section assignments,
+                  and faculty timetable scheduling across all academic terms.
                 </p>
               </div>
               <div className="mt-4 border-t border-slate-100 pt-3 text-[11px] font-semibold text-blue-700">
@@ -548,8 +648,8 @@ export default function HomePage(): JSX.Element {
                   Student Information
                 </h3>
                 <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                  Comprehensive student profiles, admission details, roll numbers, guardian contacts, and
-                  academic stream histories.
+                  Comprehensive student profiles, admission details, roll
+                  numbers, guardian contacts, and academic stream histories.
                 </p>
               </div>
               <div className="mt-4 border-t border-slate-100 pt-3 text-[11px] font-semibold text-blue-700">
@@ -567,8 +667,8 @@ export default function HomePage(): JSX.Element {
                   Attendance Management
                 </h3>
                 <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                  Daily period-wise attendance marking by assigned faculty, shortage computation, and principal
-                  correction audit trails.
+                  Daily period-wise attendance marking by assigned faculty,
+                  shortage computation, and principal correction audit trails.
                 </p>
               </div>
               <div className="mt-4 border-t border-slate-100 pt-3 text-[11px] font-semibold text-blue-700">
@@ -586,8 +686,8 @@ export default function HomePage(): JSX.Element {
                   Examination &amp; Results
                 </h3>
                 <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                  Unit tests, quarterly, and pre-final exams with secure marks entry and publish-gated report cards
-                  for student view.
+                  Unit tests, quarterly, and pre-final exams with secure marks
+                  entry and publish-gated report cards for student view.
                 </p>
               </div>
               <div className="mt-4 border-t border-slate-100 pt-3 text-[11px] font-semibold text-blue-700">
@@ -605,8 +705,8 @@ export default function HomePage(): JSX.Element {
                   Fee Management
                 </h3>
                 <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                  Counter collections, installment schedules, printable payment receipts, and an immutable append-only
-                  financial audit trail.
+                  Counter collections, installment schedules, printable payment
+                  receipts, and an immutable append-only financial audit trail.
                 </p>
               </div>
               <div className="mt-4 border-t border-slate-100 pt-3 text-[11px] font-semibold text-blue-700">
@@ -624,8 +724,8 @@ export default function HomePage(): JSX.Element {
                   Announcements
                 </h3>
                 <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                  Official circulars, exam dates, holiday schedules, and event announcements distributed directly to
-                  staff and parents.
+                  Official circulars, exam dates, holiday schedules, and event
+                  announcements distributed directly to staff and parents.
                 </p>
               </div>
               <div className="mt-4 border-t border-slate-100 pt-3 text-[11px] font-semibold text-blue-700">
@@ -643,13 +743,19 @@ export default function HomePage(): JSX.Element {
                   Parent Portal
                 </h3>
                 <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                  Zero-password parent portal for real-time monitoring of your ward's attendance records, verified
-                  marks sheets, payment receipts, and college announcements.
+                  {DEMO_OPEN_PARENT
+                    ? "Demo mode: parent records are read-only. Open any student to view attendance, published results, fees and announcements."
+                    : "Zero-password parent portal for real-time monitoring of your ward's attendance records, verified marks sheets, payment receipts, and college announcements."}
                 </p>
               </div>
               <div className="mt-4 flex items-center justify-between border-t border-blue-200 pt-3">
-                <span className="text-xs font-bold text-blue-900">Self-Service Access</span>
-                <Link to="/parent" className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:underline">
+                <span className="text-xs font-bold text-blue-900">
+                  Self-Service Access
+                </span>
+                <Link
+                  to="/parent"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:underline"
+                >
                   <span>Open Portal</span>
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
@@ -660,7 +766,10 @@ export default function HomePage(): JSX.Element {
       </section>
 
       {/* FOOTER */}
-      <footer id="contact" className="border-t border-slate-800 bg-slate-950 text-slate-300">
+      <footer
+        id="contact"
+        className="border-t border-slate-800 bg-slate-950 text-slate-300"
+      >
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {/* Col 1: College Info */}
@@ -672,8 +781,9 @@ export default function HomePage(): JSX.Element {
                 <span className="font-extrabold text-white">PRISM COLLEGE</span>
               </div>
               <p className="mt-3 text-xs leading-relaxed text-slate-400">
-                Prism Intermediate College provides rigorous academic education across science and commerce
-                pathways with integrated digital governance for staff and parents.
+                Prism Intermediate College provides rigorous academic education
+                across science and commerce pathways with integrated digital
+                governance for staff and parents.
               </p>
               <div className="mt-4 text-xs font-semibold text-blue-400">
                 TSBIE Affiliated • Co-Educational
@@ -682,11 +792,16 @@ export default function HomePage(): JSX.Element {
 
             {/* Col 2: Campus Address & Contact */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-white">Campus Contact</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+                Campus Contact
+              </h4>
               <ul className="mt-3 space-y-2.5 text-xs text-slate-400">
                 <li className="flex items-start gap-2">
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-blue-400" />
-                  <span>Plot 42, Knowledge Park, Cyber City Corridor, Hyderabad, TG – 500081</span>
+                  <span>
+                    Plot 42, Knowledge Park, Cyber City Corridor, Hyderabad, TG
+                    – 500081
+                  </span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Phone className="h-4 w-4 shrink-0 text-blue-400" />
@@ -705,30 +820,47 @@ export default function HomePage(): JSX.Element {
 
             {/* Col 3: Portal Navigation Links */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-white">Portal Navigation</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+                Portal Navigation
+              </h4>
               <ul className="mt-3 space-y-2 text-xs">
                 <li>
-                  <Link to="/admin/login" className="text-slate-400 transition hover:text-white">
+                  <Link
+                    to="/admin/login"
+                    className="text-slate-400 transition hover:text-white"
+                  >
                     Staff &amp; Faculty Login
                   </Link>
                 </li>
                 <li>
-                  <Link to="/parent" className="text-slate-400 transition hover:text-white">
-                    Parent Student Lookup
+                  <Link
+                    to="/parent"
+                    className="text-slate-400 transition hover:text-white"
+                  >
+                    Parent Portal
                   </Link>
                 </li>
                 <li>
-                  <a href="#about" className="text-slate-400 transition hover:text-white">
+                  <a
+                    href="#about"
+                    className="text-slate-400 transition hover:text-white"
+                  >
                     About Our College
                   </a>
                 </li>
                 <li>
-                  <a href="#branches" className="text-slate-400 transition hover:text-white">
+                  <a
+                    href="#branches"
+                    className="text-slate-400 transition hover:text-white"
+                  >
                     Academic Streams (MPC, BiPC, CEC)
                   </a>
                 </li>
                 <li>
-                  <a href="#services" className="text-slate-400 transition hover:text-white">
+                  <a
+                    href="#services"
+                    className="text-slate-400 transition hover:text-white"
+                  >
                     College Services Directory
                   </a>
                 </li>
@@ -737,15 +869,29 @@ export default function HomePage(): JSX.Element {
 
             {/* Col 4: Demo Credentials & System Info */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-white">Demo Credentials</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+                Demo Credentials
+              </h4>
               <p className="mt-3 text-xs leading-relaxed text-slate-400">
-                The portal operates with synthetic data for verification and demonstration.
+                The portal operates with synthetic data for verification and
+                demonstration.
               </p>
               <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900 p-3 text-xs text-slate-300">
-                <div><span className="font-semibold text-blue-400">Staff Login:</span> principal@demo.edu</div>
-                <div className="mt-0.5"><span className="font-semibold text-blue-400">Password:</span> Demo@1234</div>
+                <div>
+                  <span className="font-semibold text-blue-400">
+                    Staff Login:
+                  </span>{" "}
+                  principal@demo.edu
+                </div>
+                <div className="mt-0.5">
+                  <span className="font-semibold text-blue-400">Password:</span>{" "}
+                  Demo@1234
+                </div>
                 <div className="mt-1.5 pt-1.5 border-t border-slate-800">
-                  <span className="font-semibold text-blue-400">Parent Roll:</span> MPC25001
+                  <span className="font-semibold text-blue-400">
+                    Parent Roll:
+                  </span>{" "}
+                  MPC25001
                 </div>
               </div>
             </div>
@@ -754,15 +900,16 @@ export default function HomePage(): JSX.Element {
           {/* Copyright bar */}
           <div className="mt-10 flex flex-col items-center justify-between border-t border-slate-800 pt-6 text-xs text-slate-500 sm:flex-row">
             <div>
-              &copy; {new Date().getFullYear()} Prism Intermediate College. All rights reserved.
+              &copy; {new Date().getFullYear()} Prism Intermediate College. All
+              rights reserved.
             </div>
             <div className="mt-2 sm:mt-0">
-              College Management Portal • Built with React 18, TypeScript &amp; Tailwind CSS
+              College Management Portal • Built with React 18, TypeScript &amp;
+              Tailwind CSS
             </div>
           </div>
         </div>
       </footer>
->>>>>>> 101e9626076bbb54e08c344bca705586a0c3b185
     </div>
   );
 }

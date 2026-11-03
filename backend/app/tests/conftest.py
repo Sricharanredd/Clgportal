@@ -18,6 +18,9 @@ os.environ["LOOKUP_RATE_LIMIT"] = "1000/minute"
 # Tests always run with production parent-verification behavior; the demo
 # bypass is exercised separately by monkeypatching the settings flag.
 os.environ["PARENT_VERIFICATION_ENABLED"] = "true"
+# Open parent directory is off in tests; test_parent_demo.py turns it on
+# per-case so a developer .env with DEMO_OPEN_PARENT=true cannot leak.
+os.environ["DEMO_OPEN_PARENT"] = "false"
 # --- THIS LINE MUST STAY ABOVE EVERY app IMPORT -----------------------------
 
 import pytest  # noqa: E402

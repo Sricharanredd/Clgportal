@@ -95,4 +95,12 @@ export async function parentPost<T>(url: string, body?: unknown): Promise<T> {
   }
 }
 
+/** Unauthenticated GET against `/parent/demo/*` (flag-gated on the server). */
+export async function demoGet<T>(
+  url: string,
+  params?: Record<string, string | number | boolean | undefined>,
+): Promise<T> {
+  return parentGet<T>(`/parent/demo${url}`, params);
+}
+
 export { ApiError };

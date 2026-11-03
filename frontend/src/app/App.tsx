@@ -45,10 +45,13 @@ export default function App(): JSX.Element {
             <Route path="/announcements" element={<RequirePermission anyOf={['announcements:read']}><AnnouncementsPage /></RequirePermission>} />
           </Route>
 
-          {/* Parent portal (read-only, own shell, URL-driven) */}
-          <Route path="/parent" element={<ParentPortal mode="lookup" />} />
-          <Route path="/parent/student/:studentId" element={<ParentPortal mode="student" />} />
-          {/* Older wildcard parent URL → search page */}
+          {/* Parent portal (read-only, own shell, URL-driven).
+              Demo flag on  → /parent/students directory.
+              Demo flag off → verified lookup in ParentLegacy. */}
+          <Route path="/parent" element={<ParentPortal />} />
+          <Route path="/parent/students" element={<ParentPortal />} />
+          <Route path="/parent/students/:studentId" element={<ParentPortal />} />
+          <Route path="/parent/student/:studentId" element={<ParentPortal />} />
           <Route path="/parent/*" element={<Navigate to="/parent" replace />} />
 
           <Route

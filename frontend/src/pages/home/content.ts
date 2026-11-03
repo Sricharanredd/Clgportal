@@ -22,6 +22,7 @@ import {
   UserRound,
   type LucideIcon,
 } from 'lucide-react';
+import { DEMO_OPEN_PARENT } from '@/config/demo';
 
 /** Existing application routes — must match src/app/App.tsx (do not change). */
 export const routes = {
@@ -107,7 +108,9 @@ export const audiences: Audience[] = [
     bullets: [
       'View attendance and published results for your child',
       'Check fee status and pending dues at a glance',
-      'Read-only records, shown only after college verification',
+      DEMO_OPEN_PARENT
+        ? 'Demo mode: parent records are read-only'
+        : 'Read-only records, shown only after college verification',
     ],
     cta: 'Open parent portal',
     to: routes.parentPortal,
@@ -176,7 +179,9 @@ export const steps: Step[] = [
 
 /** Trust & security note under the steps. */
 export const trust = {
-  text: 'Parent records are read-only and shown only after college verification.',
+  text: DEMO_OPEN_PARENT
+    ? 'Demo mode: parent records are read-only.'
+    : 'Parent records are read-only and shown only after college verification.',
 };
 
 /** Dashboard preview mockup shown in the hero (all decorative copy lives here). */
