@@ -40,6 +40,7 @@ import {
   inrExact,
   pct,
 } from '@/shared/lib/format';
+import { feeStatusInfo } from '@/shared/lib/fees';
 import { ApiError, demoGet } from './parentClient';
 import ParentShell from './ParentShell';
 
@@ -186,6 +187,13 @@ function OverviewTab({
   const attendancePct = data.attendance?.attendance_pct ?? 0;
   const resultCount = data.published_results?.length ?? 0;
   const latest = announcements.data?.items[0] ?? null;
+  const feesStatus = data.fee
+    ? feeStatusInfo({
+        pending: Number(data.fee.pending_amount),
+        paid: Number(data.fee.paid_amount),
+        dueDate: data.fee.due_date,
+      })
+    : null;
   const previewResults = (data.published_results ?? []).slice(0, 4);
   const previewAttendance = history.data ?? [];
 
@@ -231,15 +239,10 @@ function OverviewTab({
         />
         <StatCard
           label="Fees status"
-          value={capitalize(data.fee?.status)}
+          value={feesStatus ? feesStatus.label : NOT_PROVIDED}
           hint={data.fee ? `Outstanding ${inrExact(data.fee.pending_amount)}` : NOT_PROVIDED}
           icon={<IndianRupee className="h-4 w-4" />}
-          tone={
-            (data.fee?.status ?? '').toLowerCase() === 'paid' ||
-            (data.fee?.status ?? '').toLowerCase() === 'cleared'
-              ? 'success'
-              : 'warning'
-          }
+          tone={feesStatus ? feesStatus.tone : 'neutral'}
           onClick={() => onTab('fees')}
         />
         <StatCard
@@ -502,7 +505,12 @@ function FeesTab({ studentId }: { studentId: number }) {
   const total = obligations.reduce((sum, o) => sum + Number(o.total_amount), 0);
   const paid = obligations.reduce((sum, o) => sum + Number(o.paid_amount), 0);
   const pending = obligations.reduce((sum, o) => sum + Number(o.pending_amount), 0);
-  const status = pending <= 0 && obligations.length > 0 ? 'paid' : pending > 0 ? 'pending' : 'unknown';
+  const dueDate =
+    obligations.map((o) => o.due_date).filter((d): d is string => Boolean(d)).sort()[0] ?? null;
+  const status =
+    obligations.length === 0
+      ? null
+      : feeStatusInfo({ pending, paid, dueDate });
 
   return (
     <div className="space-y-5">
@@ -514,7 +522,7 @@ function FeesTab({ studentId }: { studentId: number }) {
             <KpiCard label="Total" value={inrExact(total)} accent="periwinkle" />
             <KpiCard label="Paid" value={inrExact(paid)} accent="sage" />
             <KpiCard label="Outstanding" value={inrExact(pending)} accent="rose" />
-            <KpiCard label="Status" value={capitalize(status)} accent="violet" />
+            <KpiCard label="Status" value={status?.label ?? '—'} accent="violet" />
           </div>
         )}
       </Panel>

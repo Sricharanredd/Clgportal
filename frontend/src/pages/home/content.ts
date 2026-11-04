@@ -24,10 +24,11 @@ import {
 } from 'lucide-react';
 import { DEMO_OPEN_PARENT } from '@/config/demo';
 
-/** Existing application routes — must match src/app/App.tsx (do not change). */
+/** Existing application routes — must match src/app/App.tsx (do not change).
+ *  Demo flag on: "Parent Portal" goes straight to the open student directory. */
 export const routes = {
   staffLogin: '/admin/login',
-  parentPortal: '/parent',
+  parentPortal: DEMO_OPEN_PARENT ? '/parent/students' : '/parent',
 } as const;
 
 /** College identity — shown in navbar, hero and footer. */

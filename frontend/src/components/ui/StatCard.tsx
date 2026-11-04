@@ -47,7 +47,7 @@ export function StatCard({
         ) : null}
       </div>
       <p className="mt-2 text-[26px] font-extrabold leading-none tracking-tight text-ink">{value}</p>
-      {hint ? <p className="mt-2 text-[12.5px] leading-5 text-muted">{hint}</p> : null}
+      {hint ? <div className="mt-2 text-[12.5px] leading-5 text-muted">{hint}</div> : null}
       {to || onClick ? (
         <span className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-semibold text-brand-600">
           {to ? 'View' : 'Open'}
