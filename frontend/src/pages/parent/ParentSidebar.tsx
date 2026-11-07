@@ -3,13 +3,15 @@
  * (`components/app/Sidebar.tsx`) so parent navigation never inherits staff
  * permissions or staff-only destinations.
  *
- * Exactly two destinations:
+ * Three destinations:
  *   Overview  → Dashboard     → /parent
  *   Academics → All Students  → /parent/students
+ *   General   → Home          → /          (public college website)
  */
 import { Link, NavLink } from 'react-router-dom';
 import {
   GraduationCap,
+  Home,
   LayoutDashboard,
   PanelLeftClose,
   PanelLeftOpen,
@@ -35,6 +37,10 @@ const NAV_GROUPS: Array<{
   {
     label: 'Academics',
     items: [{ to: '/parent/students', label: 'All Students', icon: Users }],
+  },
+  {
+    label: 'General',
+    items: [{ to: '/', label: 'Home', icon: Home, end: true }],
   },
 ];
 
