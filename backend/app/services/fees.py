@@ -98,6 +98,23 @@ def student_fees(db: Session, student_id: int, ctx: AuthContext | None = None) -
     """Obligations + payment history for one student (scope-checked)."""
     if ctx is not None and not can_view_student(db, ctx, student_id):
         raise AppError(404, "NOT_FOUND", "Student record not found.")
+    return _student_fees_payload(db, student_id, can_pay="payments:write" in ctx.permissions)
+
+
+def public_student_fees(db: Session, student_id: int) -> StudentFeesOut:
+    """READ-ONLY fee detail for the open (demo) parent portal.
+
+    No authorization context exists in demo mode, so this is only ever
+    called by the flag-gated `/parent/demo/*` router. It exposes exactly
+    what the parent Fees tab shows: obligations + this student's payments.
+    Staff-only fields (who recorded a payment) are stripped.
+    """
+    return _student_fees_payload(db, student_id, can_pay=False, include_recorder=False)
+
+
+def _student_fees_payload(
+    db: Session, student_id: int, *, can_pay: bool, include_recorder: bool = True
+) -> StudentFeesOut:
     student = db.query(Student).filter(Student.id == student_id).first()
     if student is None:
         raise AppError(404, "NOT_FOUND", "Student record not found.")
@@ -109,7 +126,10 @@ def student_fees(db: Session, student_id: int, ctx: AuthContext | None = None) -
         .filter(StudentFeeObligation.student_id == student_id)
         .all()
     )
+<<<<<<< HEAD
     can_pay = ("payments:write" in ctx.permissions) if ctx else False
+=======
+>>>>>>> origin/main
     obligations = [
         ObligationOut(
             id=o.id,
@@ -133,7 +153,9 @@ def student_fees(db: Session, student_id: int, ctx: AuthContext | None = None) -
         .order_by(Payment.paid_at.desc(), Payment.id.desc())
         .all()
     )
-    payments = [_payment_out(p, student, u) for p, u in pay_rows]
+    payments = [
+        _payment_out(p, student, u if include_recorder else None) for p, u in pay_rows
+    ]
     return StudentFeesOut(
         student_id=student.id,
         student_name=student.full_name,
@@ -416,6 +438,7 @@ def _log_activity(db: Session, ctx: AuthContext, action: str, summary_text: str)
 __all__ = [
     "summary",
     "student_fees",
+    "public_student_fees",
     "list_payments",
     "record_payment",
     "reverse_payment",

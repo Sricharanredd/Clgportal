@@ -120,15 +120,23 @@ def student_profile(
         profile.attendance = AttendanceSummary(**attendance_summary(db, student_id))
 
     if "results:read" in ctx.permissions or "results:read_own" in ctx.permissions:
-        profile.published_results = _published_results(db, student_id, ctx)
+        profile.published_results = _published_results(db, student_id)
 
-    if "fees:read" in ctx.permissions or "fees:read_own" in ctx.permissions:
-        profile.fee = _fee_summary(db, student_id, ctx)
+    if (
+        "fees:read" in ctx.permissions
+        or "fees:read_own" in ctx.permissions
+        or "fees:read_scoped" in ctx.permissions
+    ):
+        profile.fee = _fee_summary(db, student_id)
 
     return profile
 
 
+<<<<<<< HEAD
 def _published_results(db: Session, student_id: int, ctx: AuthContext | None = None) -> list[ResultSummary]:
+=======
+def _published_results(db: Session, student_id: int) -> list[ResultSummary]:
+>>>>>>> origin/main
     """Only PUBLISHED exams — drafts are never returned to readonly callers."""
     from app.models.academic import Subject
     from app.models.exam import ExamResult, Examination
@@ -145,9 +153,12 @@ def _published_results(db: Session, student_id: int, ctx: AuthContext | None = N
         )
         .order_by(Examination.exam_date.desc())
     )
+<<<<<<< HEAD
     if ctx and ctx.is_readonly_principal:
         # Only current-year published results for parents/students.
         pass
+=======
+>>>>>>> origin/main
     out: list[ResultSummary] = []
     for result, exam, subject in q.all():
         out.append(
@@ -165,7 +176,11 @@ def _published_results(db: Session, student_id: int, ctx: AuthContext | None = N
     return out
 
 
+<<<<<<< HEAD
 def _fee_summary(db: Session, student_id: int, ctx: AuthContext | None = None) -> FeeSummary | None:
+=======
+def _fee_summary(db: Session, student_id: int) -> FeeSummary | None:
+>>>>>>> origin/main
     from app.models.fee import StudentFeeObligation
 
     ob = (

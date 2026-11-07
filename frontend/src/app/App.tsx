@@ -1,6 +1,7 @@
 import { RequireAuth, RequirePermission } from '@/app/guards';
 import { AuthProvider } from '@/app/AuthContext';
 import { StatePanel } from '@/components/ui/States';
+import { ToastProvider } from '@/components/ui/Toast';
 import AppLayout from '@/layouts/AppLayout';
 import DashboardPage from '@/pages/dashboard/DashboardPage';
 import StudentInfoPage from '@/pages/student-info/StudentInfoPage';
@@ -18,7 +19,8 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 export default function App(): JSX.Element {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <ToastProvider>
+        <BrowserRouter>
         <Routes>
           {/* Public routes (no authentication) */}
           <Route path="/" element={<HomePage />} />
@@ -48,10 +50,21 @@ export default function App(): JSX.Element {
             <Route path="/announcements" element={<RequirePermission anyOf={['announcements:read']}><AnnouncementsPage /></RequirePermission>} />
           </Route>
 
+<<<<<<< HEAD
           {/* Parent / Student portal — redirects to the main staff dashboard */}
           <Route path="/parent" element={<Navigate to="/dashboard" replace />} />
           <Route path="/parent/*" element={<Navigate to="/dashboard" replace />} />
           <Route path="/student/dashboard" element={<Navigate to="/dashboard" replace />} />
+=======
+          {/* Parent portal (read-only, own shell, URL-driven).
+              Demo flag on  → /parent/students directory.
+              Demo flag off → verified lookup in ParentLegacy. */}
+          <Route path="/parent" element={<ParentPortal />} />
+          <Route path="/parent/students" element={<ParentPortal />} />
+          <Route path="/parent/students/:studentId" element={<ParentPortal />} />
+          <Route path="/parent/student/:studentId" element={<ParentPortal />} />
+          <Route path="/parent/*" element={<Navigate to="/parent" replace />} />
+>>>>>>> origin/main
 
           <Route
             path="*"
@@ -66,7 +79,8 @@ export default function App(): JSX.Element {
             }
           />
         </Routes>
-      </BrowserRouter>
+        </BrowserRouter>
+      </ToastProvider>
     </AuthProvider>
   );
 }

@@ -1,5 +1,7 @@
 """Environment-based application configuration (pydantic-settings)."""
+
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -9,7 +11,9 @@ class Settings(BaseSettings):
     """Central settings loaded from environment / .env file."""
 
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+        env_file=Path(__file__).resolve().parents[2] / ".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
     )
 
     # Application
@@ -40,6 +44,11 @@ class Settings(BaseSettings):
 
     # Parent verification
     parent_verification_enabled: bool = True
+
+    # Open (no-login) parent browsing — DEMO ONLY. When true, the
+    # flag-gated GET /parent/demo/* routes list every student and expose
+    # read-only profile/attendance/results/fees. Never enable in production.
+    demo_open_parent: bool = False
 
     @field_validator("jwt_secret")
     @classmethod

@@ -14,6 +14,7 @@ from app.api.v1 import (
     fees,
     meta,
     parent,
+    parent_demo,
     students,
 )
 
@@ -23,6 +24,9 @@ api_v1_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_v1_router.include_router(meta.router, prefix="/meta", tags=["meta"])
 api_v1_router.include_router(students.router, prefix="/students", tags=["students"])
 api_v1_router.include_router(parent.router, prefix="/parent", tags=["parent"])
+api_v1_router.include_router(
+    parent_demo.router, prefix="/parent/demo", tags=["parent-demo"]
+)
 api_v1_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 api_v1_router.include_router(
     attendance.router, prefix="/attendance", tags=["attendance"]

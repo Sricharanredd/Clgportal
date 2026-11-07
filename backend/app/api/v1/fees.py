@@ -42,7 +42,9 @@ def fees_summary(
 def student_fees(
     student_id: int,
     db: Session = Depends(get_db),
-    ctx: AuthContext = Depends(require_any("fees:read", "fees:read_own")),
+    ctx: AuthContext = Depends(
+        require_any("fees:read", "fees:read_own", "fees:read_scoped")
+    ),
 ) -> StudentFeesOut:
     return fee_service.student_fees(db, student_id, ctx)
 

@@ -1,7 +1,7 @@
 /**
  * Role-aware dashboard: fetches the caller's own dashboard endpoint
  * (GET /dashboard/{principal|accounts|faculty|admin}) — the server decides
- * what each role may see.
+ * what each role may see. Presentation only; no data shaping is changed.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
@@ -12,7 +12,8 @@ import type {
   FacultyDashboard,
   PrincipalDashboard,
 } from '@/shared/api/types';
-import { ErrorState, Spinner } from '@/components/ui/States';
+import { ErrorState } from '@/components/ui/States';
+import { PageSkeleton } from '@/components/ui/Skeleton';
 import PrincipalView from './PrincipalView';
 import AccountsView from './AccountsView';
 import FacultyView from './FacultyView';
@@ -30,6 +31,13 @@ const ENDPOINT: Record<Role, string> = {
   accounts: '/dashboard/accounts',
   faculty: '/dashboard/faculty',
 };
+
+function greetingFor(name: string | undefined): string {
+  const hour = new Date().getHours();
+  const part = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const first = name?.trim().split(/\s+/)[0];
+  return first ? `${part}, ${first}` : part;
+}
 
 export default function DashboardPage(): JSX.Element {
   const { user, hasRole } = useAuth();
@@ -62,6 +70,7 @@ export default function DashboardPage(): JSX.Element {
 
   if (!role) {
     return (
+<<<<<<< HEAD
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold text-forest-dark">Welcome to the College Portal</h2>
@@ -71,13 +80,19 @@ export default function DashboardPage(): JSX.Element {
         </div>
         <CollegeOverview />
       </div>
+=======
+      <ErrorState
+        title="No staff role assigned"
+        error={new Error('This account has no staff role yet. Contact the administrator.')}
+      />
+>>>>>>> origin/main
     );
   }
-  if (loading) return <Spinner label="Loading dashboard…" />;
+  if (loading) return <PageSkeleton stats={4} panels={2} />;
   if (error) return <ErrorState error={error} onRetry={() => void load()} />;
-  if (!data) return <ErrorState error={new Error('Empty response')} />;
+  if (!data) return <ErrorState error={new Error('The dashboard returned no data.')} onRetry={() => void load()} />;
 
-  const heading = `Welcome, ${user?.full_name ?? 'there'}`;
+  const heading = greetingFor(user?.full_name);
 
   switch (role) {
     case 'principal':

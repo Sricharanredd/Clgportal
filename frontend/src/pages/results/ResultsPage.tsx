@@ -19,6 +19,8 @@ import type {
 } from '@/shared/api/types';
 import { EmptyState, ErrorState, Spinner } from '@/components/ui/States';
 import { Panel } from '@/components/ui/Panel';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/app/AuthContext';
 import { dateShort } from '@/shared/lib/format';
 
@@ -35,6 +37,7 @@ export default function ResultsPage(): JSX.Element {
   const canRead = has('results:read');
   const canWrite = has('results:write');
   const canPublish = has('results:publish');
+  const toast = useToast();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedId = searchParams.get('exam');
@@ -56,7 +59,7 @@ export default function ResultsPage(): JSX.Element {
   // clicks in the same tick would both see busy === false. The ref flips
   // immediately, so a double-click can never fire two Save/Publish requests.
   const busyRef = useRef(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<'publish' | 'reopen' | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const loadExams = useCallback(async () => {
@@ -86,7 +89,6 @@ export default function ResultsPage(): JSX.Element {
     setDetailLoading(true);
     setDetailError(null);
     setActionError(null);
-    setNotice(null);
     try {
       const result = await get<ExaminationDetail>(`/examinations/${selectedId}`);
       setDetail(result);
@@ -122,7 +124,6 @@ export default function ResultsPage(): JSX.Element {
     busyRef.current = true;
     setBusy(true);
     setActionError(null);
-    setNotice(null);
     try {
       // Client-side validation (the server re-checks everything): marks must
       // be numeric, non-negative and within the exam's maximum.
@@ -155,7 +156,10 @@ export default function ResultsPage(): JSX.Element {
         `/examinations/${detail.examination.id}/results`,
         { results: rows },
       );
-      setNotice(`Saved ${res.saved} result${res.saved === 1 ? '' : 's'} (${res.entered}/${res.expected} entered).`);
+      toast.success(
+        'Results saved',
+        `${res.saved} result${res.saved === 1 ? '' : 's'} stored · ${res.entered}/${res.expected} entered.`,
+      );
       await loadDetail();
       await loadExams();
     } catch (err) {
@@ -172,10 +176,13 @@ export default function ResultsPage(): JSX.Element {
     busyRef.current = true;
     setBusy(true);
     setActionError(null);
-    setNotice(null);
     try {
       await post(`/examinations/${detail.examination.id}/publish`);
-      setNotice('Published — results are now visible to parents and students.');
+      toast.success(
+        'Exam published',
+        'Results are now visible to parents and students.',
+      );
+      setConfirmAction(null);
       await loadDetail();
       await loadExams();
     } catch (err) {
@@ -191,10 +198,10 @@ export default function ResultsPage(): JSX.Element {
     busyRef.current = true;
     setBusy(true);
     setActionError(null);
-    setNotice(null);
     try {
       await post(`/examinations/${detail.examination.id}/reopen`);
-      setNotice('Reopened — results are hidden again until republished.');
+      toast.info('Exam reopened', 'Results are hidden again until you republish.');
+      setConfirmAction(null);
       await loadDetail();
       await loadExams();
     } catch (err) {
@@ -315,13 +322,23 @@ export default function ResultsPage(): JSX.Element {
                     </button>
                   ) : null}
                   {canPublish && detail.examination.status !== 'published' ? (
-                    <button type="button" className="btn-primary" disabled={busy} onClick={() => void publish()}>
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      disabled={busy}
+                      onClick={() => setConfirmAction('publish')}
+                    >
                       <Eye className="h-4 w-4" />
                       Publish
                     </button>
                   ) : null}
                   {canPublish && detail.examination.status === 'published' ? (
-                    <button type="button" className="btn-ghost" disabled={busy} onClick={() => void reopen()}>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      disabled={busy}
+                      onClick={() => setConfirmAction('reopen')}
+                    >
                       <RotateCcw className="h-4 w-4" />
                       Reopen (hide)
                     </button>
@@ -332,11 +349,6 @@ export default function ResultsPage(): JSX.Element {
               {actionError ? (
                 <p className="mb-3 rounded-xl border border-rose/40 bg-rose/10 px-3 py-2 text-sm text-plum" role="alert">
                   {actionError}
-                </p>
-              ) : null}
-              {notice ? (
-                <p className="mb-3 rounded-xl border border-sage/40 bg-sage/10 px-3 py-2 text-sm text-plum" role="status">
-                  {notice}
                 </p>
               ) : null}
 
@@ -425,6 +437,38 @@ export default function ResultsPage(): JSX.Element {
                 </table>
               </div>
             </Panel>
+          ) : null}
+
+          {detail ? (
+            <ConfirmDialog
+              open={confirmAction !== null}
+              tone={confirmAction === 'reopen' ? 'danger' : 'primary'}
+              title={confirmAction === 'reopen' ? 'Reopen and hide results?' : 'Publish these results?'}
+              description={
+                confirmAction === 'reopen' ? (
+                  <>
+                    <strong className="font-bold text-ink">{detail.examination.title}</strong> will be hidden
+                    from parents and students immediately. You can publish it again after corrections.
+                  </>
+                ) : (
+                  <>
+                    <strong className="font-bold text-ink">{detail.examination.title}</strong> (
+                    {detail.examination.class_label} · {detail.examination.subject_code}) will become visible
+                    to parents and students. Check the marks first — publishing is the only way results leave
+                    the staff workspace.
+                  </>
+                )
+              }
+              confirmLabel={confirmAction === 'reopen' ? 'Reopen exam' : 'Publish results'}
+              busy={busy}
+              onConfirm={() => {
+                if (confirmAction === 'reopen') void reopen();
+                else if (confirmAction === 'publish') void publish();
+              }}
+              onCancel={() => {
+                if (!busy) setConfirmAction(null);
+              }}
+            />
           ) : null}
         </div>
       </div>

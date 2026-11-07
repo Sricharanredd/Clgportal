@@ -1,35 +1,44 @@
-/** Shared dashboard primitives: frosted panel + KPI card. */
+/**
+ * Shared dashboard primitives.
+ * `Panel` and `KpiCard` keep their historical props so existing screens
+ * (Fees, Results, Parent portal) render with the new visual language.
+ */
 import type { ReactNode } from 'react';
+import { Card, CardHeader } from './Card';
+import { StatCard, type StatTone } from './StatCard';
 
 export function Panel({
   title,
+  description,
   actions,
   children,
   className = '',
+  bodyClassName = '',
 }: {
   title?: string;
+  description?: string;
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
+  bodyClassName?: string;
 }) {
+  if (!title) {
+    return <Card className={`p-5 ${className}`}>{children}</Card>;
+  }
   return (
-    <section className={`glass-card rounded-2xl p-5 ${className}`}>
-      {title ? (
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">{title}</h2>
-          {actions}
-        </div>
-      ) : null}
-      {children}
-    </section>
+    <Card className={className}>
+      <CardHeader title={title} description={description} actions={actions} />
+      <div className={`px-5 py-4 ${bodyClassName}`}>{children}</div>
+    </Card>
   );
 }
 
-const ACCENTS: Record<string, string> = {
-  violet: 'from-violet/15 to-transparent border-violet/25',
-  rose: 'from-rose/15 to-transparent border-rose/25',
-  sage: 'from-sage/15 to-transparent border-sage/25',
-  periwinkle: 'from-periwinkle/20 to-transparent border-periwinkle/30',
+const LEGACY_ACCENTS: Record<string, StatTone> = {
+  violet: 'brand',
+  periwinkle: 'neutral',
+  sage: 'success',
+  rose: 'danger',
+  peach: 'warning',
 };
 
 export function KpiCard({
@@ -37,21 +46,15 @@ export function KpiCard({
   value,
   hint,
   accent = 'violet',
+  icon,
 }: {
   label: string;
   value: ReactNode;
   hint?: string;
-  accent?: keyof typeof ACCENTS;
+  accent?: keyof typeof LEGACY_ACCENTS;
+  icon?: ReactNode;
 }) {
-  return (
-    <div
-      className={`rounded-2xl border bg-gradient-to-br to-white/40 p-4 backdrop-blur ${ACCENTS[accent] ?? ACCENTS.violet}`}
-    >
-      <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-      <p className="mt-1 text-2xl font-bold text-plum">{value}</p>
-      {hint ? <p className="mt-1 text-xs text-muted">{hint}</p> : null}
-    </div>
-  );
+  return <StatCard label={label} value={value} hint={hint} icon={icon} tone={LEGACY_ACCENTS[accent] ?? 'brand'} />;
 }
 
 /** Small helper: format API datetime strings compactly. */
