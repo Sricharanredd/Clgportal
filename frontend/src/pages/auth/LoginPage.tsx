@@ -141,16 +141,6 @@ export default function LoginPage(): JSX.Element {
   const accounts = demoTab === 'staff' ? STAFF_ACCOUNTS : FACULTY_ACCOUNTS;
 
   return (
-<<<<<<< HEAD
-    <div className="flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md">
-        <div className="mb-6 text-center">
-          <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-forest to-leaf text-white shadow-lg">
-            <GraduationCap className="h-7 w-7" aria-hidden />
-          </span>
-          <h1 className="text-2xl font-bold text-plum">Prism College Portal</h1>
-          <p className="mt-1 text-sm text-muted">Intermediate College Management Portal</p>
-=======
     <div className="min-h-screen lg:grid lg:grid-cols-[1.05fr_1fr]">
       {/* ── Brand panel (desktop) ─────────────────────────────────────── */}
       <aside className="relative hidden overflow-hidden bg-brand-700 p-10 text-white lg:flex lg:flex-col lg:justify-between xl:p-14">
@@ -188,7 +178,6 @@ export default function LoginPage(): JSX.Element {
               number can be traced back to the person who recorded it.
             </p>
           </div>
->>>>>>> origin/main
         </div>
 
         <div className="relative mt-12 space-y-4">

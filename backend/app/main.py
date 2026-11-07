@@ -102,7 +102,15 @@ def create_app() -> FastAPI:
     install_error_handlers(app)
 
     # --- Routes ---
-    @app.get("/healthz", tags=["ops"], summary="Liveness & DB connectivity check")
+    # `/health` is the path container/orchestrator probes use; `/healthz` is the
+    # canonical name. Both return the same payload so either probe works.
+    @app.get("/health", tags=["ops"], summary="Liveness & DB connectivity check")
+    @app.get(
+        "/healthz",
+        tags=["ops"],
+        summary="Liveness & DB connectivity check (canonical alias)",
+        include_in_schema=False,
+    )
     def healthz() -> dict:
         from sqlalchemy import text
 

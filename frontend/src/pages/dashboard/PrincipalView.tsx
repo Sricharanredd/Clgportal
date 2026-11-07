@@ -127,13 +127,9 @@ export default function PrincipalView({
           label="Fee collection"
           value={inr(data.fees_collected)}
           hint={`${inr(data.fees_outstanding)} outstanding · ${data.fee_payers} payers`}
-<<<<<<< HEAD
-          accent="periwinkle"
-=======
           icon={<IndianRupee className="h-4 w-4" />}
           tone="accent"
           to="/fees"
->>>>>>> origin/main
         />
       </div>
 
@@ -161,30 +157,6 @@ export default function PrincipalView({
               />
             </div>
           ) : (
-<<<<<<< HEAD
-            <ul className="space-y-4">
-              {data.branch_attendance.map((b) => (
-                <li key={b.branch_code}>
-                  <div className="mb-1 flex items-baseline justify-between text-sm">
-                    <span className="font-medium text-plum">
-                      {b.branch_name}{' '}
-                      <span className="text-xs text-muted">
-                        ({b.sessions} sessions · {b.present}/{b.total_records})
-                      </span>
-                    </span>
-                    <span className="font-semibold text-violet">{pct(b.attendance_pct)}</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-periwinkle/30">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-forest to-leaf transition-all"
-                      style={{ width: `${Math.min(100, b.attendance_pct)}%` }}
-                      role="progressbar"
-                      aria-valuenow={b.attendance_pct}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-label={`${b.branch_name} attendance`}
-                    />
-=======
             <ul className="divide-y divide-line">
               {data.branch_attendance.map((branch) => (
                 <li key={branch.branch_code} className="px-5 py-3.5">
@@ -197,7 +169,6 @@ export default function PrincipalView({
                       </p>
                     </div>
                     <span className="shrink-0 text-[13px] font-bold text-ink">{pct(branch.attendance_pct)}</span>
->>>>>>> origin/main
                   </div>
                   <ProgressBar
                     className="mt-2"

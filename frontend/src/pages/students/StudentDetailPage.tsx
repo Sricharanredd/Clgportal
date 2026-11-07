@@ -361,28 +361,6 @@ export default function StudentDetailPage(): JSX.Element {
         Back to students
       </Link>
 
-<<<<<<< HEAD
-      {/* Identity header */}
-      <div className="glass-card flex flex-wrap items-center gap-4 rounded-2xl p-5">
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-forest to-leaf text-xl font-bold text-white">
-          {data.full_name.charAt(0)}
-        </span>
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-xl font-bold text-plum">{data.full_name}</h2>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                data.is_active ? 'bg-sage/20 text-sage' : 'bg-peach/70 text-violet-600'
-              }`}
-            >
-              {data.is_active ? 'active' : 'inactive'}
-            </span>
-            {data.enrollment_status ? (
-              <span className="rounded-full bg-periwinkle/30 px-2 py-0.5 text-[11px] font-semibold text-violet">
-                {data.enrollment_status}
-              </span>
-            ) : null}
-=======
       {/* ── Identity header ─────────────────────────────────────────── */}
       <section className="card overflow-hidden">
         <div className="relative border-b border-line bg-gradient-to-br from-brand-50 via-surface to-accent-50 px-5 py-6 sm:px-6">
@@ -413,7 +391,6 @@ export default function StudentDetailPage(): JSX.Element {
                 <span>{display(data.academic_year)}</span>
               </div>
             </div>
->>>>>>> origin/main
           </div>
         </div>
 

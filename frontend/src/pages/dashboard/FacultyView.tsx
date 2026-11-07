@@ -145,22 +145,7 @@ export default function FacultyView({
         </div>
       )}
 
-<<<<<<< HEAD
-      <div className="flex flex-wrap gap-2">
-        {data.assigned_branches.map((b) => (
-          <span key={b} className="rounded-full bg-violet/10 px-3 py-1 text-xs font-medium text-violet">
-            {b}
-          </span>
-        ))}
-        {data.assigned_subjects.map((s) => (
-          <span key={s} className="rounded-full bg-mint/50 px-3 py-1 text-xs font-medium text-forest">
-            {s}
-          </span>
-        ))}
-      </div>
-=======
       <AttentionPanel items={attention} />
->>>>>>> origin/main
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard

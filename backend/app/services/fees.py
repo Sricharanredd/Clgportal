@@ -94,9 +94,9 @@ def _payment_out(p: Payment, student: Student, recorder: User | None) -> Payment
     )
 
 
-def student_fees(db: Session, student_id: int, ctx: AuthContext | None = None) -> StudentFeesOut:
+def student_fees(db: Session, student_id: int, ctx: AuthContext) -> StudentFeesOut:
     """Obligations + payment history for one student (scope-checked)."""
-    if ctx is not None and not can_view_student(db, ctx, student_id):
+    if not can_view_student(db, ctx, student_id):
         raise AppError(404, "NOT_FOUND", "Student record not found.")
     return _student_fees_payload(db, student_id, can_pay="payments:write" in ctx.permissions)
 
@@ -126,10 +126,6 @@ def _student_fees_payload(
         .filter(StudentFeeObligation.student_id == student_id)
         .all()
     )
-<<<<<<< HEAD
-    can_pay = ("payments:write" in ctx.permissions) if ctx else False
-=======
->>>>>>> origin/main
     obligations = [
         ObligationOut(
             id=o.id,

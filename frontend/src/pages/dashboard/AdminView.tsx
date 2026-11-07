@@ -155,41 +155,6 @@ export default function AdminView({
         />
       </div>
 
-<<<<<<< HEAD
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
-        <KpiCard label="Students" value={data.total_students} accent="violet" />
-        <KpiCard label="Staff" value={`${data.active_staff}/${data.total_staff}`} accent="sage" />
-        <KpiCard label="Branches" value={data.branch_count} accent="periwinkle" />
-        <KpiCard label="Classes" value={data.class_count} accent="periwinkle" />
-        <KpiCard label="Academic year" value={data.academic_year ?? '—'} accent="violet" />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Panel title="Branches">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-periwinkle/30 text-xs uppercase tracking-wide text-muted">
-                  <th className="pb-2 pr-3 font-medium">Branch</th>
-                  <th className="pb-2 pr-3 text-right font-medium">Students</th>
-                  <th className="pb-2 text-right font-medium">Classes</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-periwinkle/20">
-                {data.branch_summaries.map((b) => (
-                  <tr key={b.branch_code}>
-                    <td className="py-2 pr-3">
-                      <span className="font-medium text-plum">{b.branch_name}</span>
-                      <span className="ml-2 text-xs text-muted">{b.branch_code}</span>
-                    </td>
-                    <td className="py-2 pr-3 text-right text-plum">{b.students}</td>
-                    <td className="py-2 text-right text-plum">{b.classes}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-=======
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel
           title="Branches"
@@ -221,7 +186,6 @@ export default function AdminView({
               )}
             />
           )}
->>>>>>> origin/main
         </Panel>
 
         <Panel title="Recent activity" description="Latest audited actions." bodyClassName="p-0">

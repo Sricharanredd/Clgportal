@@ -238,7 +238,9 @@ def test_attendance_history_submitted_only(client, tokens):
     sid = session["children"][0]["student_id"]
 
     submitted_day = _past_weekday(35)
-    draft_day = _past_weekday(36)
+    # Keep the draft well clear of submitted_day: on a Sunday both 35 and 36
+    # days ago roll back to the same Saturday.
+    draft_day = _past_weekday(40)
 
     # Faculty marks + submits a full roster on submitted_day.
     roster = client.get(

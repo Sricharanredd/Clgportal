@@ -13,31 +13,6 @@
    needs a different text tone). Nothing else in the app hard-codes colour.
    ═══════════════════════════════════════════════════════════════════════ */
 :root {
-<<<<<<< HEAD
-  /* Green + white design tokens */
-  --c-forest: #2f6b3c;
-  --c-forest-dark: #1e4229;
-  --c-forest-light: #4c8a58;
-  --c-leaf: #5b9a63;
-  --c-sage: #4f8a5b;
-  --c-mint: #c9e2cc;
-  --c-mist: #f1f8f2;
-  --c-white: #ffffff;
-  --c-ink: #1e3a26;
-  --c-muted: #5b6e60;
-  --c-danger: #a8463f;
-
-  /* Legacy aliases (kept for existing utilities) */
-  --c-peach: #edf6ee;
-  --c-lavender: #d8ebd9;
-  --c-periwinkle: #a9cdaf;
-  --c-violet: #2f6b3c;
-  --c-violet-light: #4c8a58;
-  --c-violet-dark: #245530;
-  --c-rose: #a8463f;
-  --c-porcelain: #f7fbf8;
-  --c-plum: #1e3a26;
-=======
   /* ── Primary — refined deep purple ─────────────────────────────────── */
   --brand-50: 244 240 254; /* #F4F0FE  tints, active nav            */
   --brand-100: 231 223 251; /* #E7DFFB  rings, hover fills          */
@@ -108,7 +83,6 @@
   --sidebar-w: 16.5rem;
   --sidebar-w-collapsed: 4.75rem;
   --topbar-h: 4rem;
->>>>>>> origin/main
 }
 
 @layer base {
@@ -119,20 +93,6 @@
 
   body {
     min-height: 100vh;
-<<<<<<< HEAD
-    /* White at the top, softly deepening into natural green. */
-    background-image: linear-gradient(
-      180deg,
-      #ffffff 0%,
-      #f4faf5 30%,
-      #d9ecdb 65%,
-      #b4d5b9 100%
-    );
-    background-attachment: fixed;
-    background-color: var(--c-mist);
-    color: var(--c-ink);
-    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-=======
     background-color: rgb(var(--canvas));
     /* Calm neutral canvas with two whisper-soft brand washes. */
     background-image:
@@ -144,22 +104,11 @@
     font-feature-settings: 'cv05' 1, 'cv08' 1;
     font-size: 0.9375rem;
     line-height: 1.55;
->>>>>>> origin/main
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-variant-numeric: tabular-nums;
   }
 
-<<<<<<< HEAD
-  ::selection {
-    background: var(--c-mint);
-    color: var(--c-forest-dark);
-  }
-
-  /* Global visible keyboard focus style */
-  :focus-visible {
-    outline: 2px solid var(--c-forest);
-=======
   h1,
   h2,
   h3,
@@ -177,7 +126,6 @@
   /* One visible, high-contrast focus style everywhere. */
   :focus-visible {
     outline: 2px solid rgb(var(--brand-600));
->>>>>>> origin/main
     outline-offset: 2px;
     border-radius: var(--radius-xs);
   }
@@ -201,21 +149,12 @@
 }
 
 @layer components {
-<<<<<<< HEAD
-  .glass {
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.85);
-    box-shadow: 0 8px 32px rgba(30, 66, 41, 0.10);
-=======
   /* ── Surfaces ──────────────────────────────────────────────────────── */
   .card {
     background-color: rgb(var(--surface));
     border: 1px solid rgb(var(--line));
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-md);
->>>>>>> origin/main
   }
 
   .card-flat {
@@ -227,28 +166,6 @@
 
   /* Legacy class names — kept so untouched screens inherit the new look. */
   .glass-card {
-<<<<<<< HEAD
-    background: rgba(255, 255, 255, 0.92);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(47, 107, 60, 0.15);
-    box-shadow: 0 8px 32px rgba(30, 66, 41, 0.10);
-  }
-
-  .surface {
-    background: rgba(255, 255, 255, 0.97);
-    border: 1px solid rgba(47, 107, 60, 0.14);
-  }
-
-  .nav-active {
-    background-image: linear-gradient(135deg, #1e4229, #3f7a4b);
-    color: #ffffff;
-    box-shadow: 0 2px 12px rgba(30, 66, 41, 0.12);
-  }
-
-  .text-muted {
-    color: var(--c-muted);
-=======
     background-color: rgb(var(--surface));
     border: 1px solid rgb(var(--line));
     border-radius: var(--radius-xl);
@@ -269,7 +186,6 @@
 
   .text-muted {
     color: rgb(var(--muted));
->>>>>>> origin/main
   }
 
   /* Active pill (sidebar links, tab pills). */
@@ -285,22 +201,6 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-<<<<<<< HEAD
-    background-color: var(--c-forest);
-    color: #ffffff;
-    border-radius: 0.75rem;
-    padding: 0.5rem 1rem;
-    transition: background-color 150ms ease;
-  }
-
-  .btn-primary:hover {
-    background-color: var(--c-forest-dark);
-  }
-
-  .btn-primary:focus-visible {
-    outline: 2px solid var(--c-forest);
-    outline-offset: 2px;
-=======
     background-color: rgb(var(--brand-500));
     color: #fff;
     border-radius: var(--radius-md);
@@ -328,7 +228,6 @@
   .btn-primary:disabled {
     opacity: 0.55;
     cursor: not-allowed;
->>>>>>> origin/main
   }
 
   .btn-ghost {
@@ -336,17 +235,6 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-<<<<<<< HEAD
-    background-color: transparent;
-    color: var(--c-forest);
-    border-radius: 0.75rem;
-    padding: 0.5rem 1rem;
-    transition: background-color 150ms ease;
-  }
-
-  .btn-ghost:hover {
-    background-color: rgba(47, 107, 60, 0.08);
-=======
     background-color: rgb(var(--surface));
     color: rgb(var(--ink-soft));
     border: 1px solid rgb(var(--line));
@@ -692,6 +580,5 @@
 
   .skeleton::after {
     animation: none;
->>>>>>> origin/main
   }
 }
