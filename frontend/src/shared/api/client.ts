@@ -65,6 +65,25 @@ export function toApiError(err: unknown): ApiError {
 /** Fired when a silent refresh fails and the session is gone. */
 export const SESSION_EXPIRED_EVENT = 'cmp:session-expired';
 
+/**
+ * Non-secret marker cookie set by the API alongside the HttpOnly refresh
+ * cookie. Reading it lets the SPA skip the startup refresh call entirely
+ * when nobody is signed in (avoids a console 401 for anonymous visitors).
+ */
+export const SESSION_HINT_COOKIE = 'cmp_session';
+
+export function hasSessionHint(): boolean {
+  if (typeof document === 'undefined') return false;
+  return document.cookie
+    .split(';')
+    .some((part) => part.trim().startsWith(`${SESSION_HINT_COOKIE}=`));
+}
+
+export function clearSessionHint(): void {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${SESSION_HINT_COOKIE}=; Max-Age=0; path=/`;
+}
+
 export const api = axios.create({
   baseURL: '/api/v1',
   withCredentials: true, // send the HttpOnly refresh cookie
@@ -81,6 +100,10 @@ api.interceptors.request.use((config) => {
 let refreshPromise: Promise<boolean> | null = null;
 
 export function refreshAccessToken(): Promise<boolean> {
+  if (!hasSessionHint()) {
+    // No session marker → don't probe the endpoint and log a 401.
+    return Promise.resolve(false);
+  }
   if (!refreshPromise) {
     refreshPromise = axios
       .post<TokenResponse>('/api/v1/auth/refresh', null, { withCredentials: true })
@@ -88,7 +111,10 @@ export function refreshAccessToken(): Promise<boolean> {
         accessToken = res.data.access_token;
         return true;
       })
-      .catch(() => false)
+      .catch(() => {
+        clearSessionHint();
+        return false;
+      })
       .finally(() => {
         refreshPromise = null;
       });

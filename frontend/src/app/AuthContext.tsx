@@ -15,6 +15,7 @@ import {
   type ReactNode,
 } from 'react';
 import {
+  clearSessionHint,
   get,
   post,
   refreshAccessToken,
@@ -43,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clear = useCallback(() => {
     setAccessToken(null);
+    clearSessionHint();
     setUser(null);
     setStatus('anonymous');
   }, []);

@@ -21,6 +21,9 @@ settings = get_settings()
 router = APIRouter()
 
 REFRESH_COOKIE = "cmp_refresh"
+# Non-secret, JS-readable marker that a refresh cookie exists. Lets the SPA
+# skip its startup refresh probe for anonymous visitors (no noisy 401).
+SESSION_HINT_COOKIE = "cmp_session"
 
 
 def _refresh_cookie(response: Response, token: str) -> None:
@@ -40,6 +43,21 @@ def _refresh_cookie(response: Response, token: str) -> None:
         max_age=settings.refresh_token_expire_days * 86400,
         path="/api/v1/auth",
     )
+    # Readable hint only — carries no token, just "a session exists".
+    response.set_cookie(
+        key=SESSION_HINT_COOKIE,
+        value="1",
+        httponly=False,
+        secure=settings.app_env == "production",
+        samesite="lax",
+        max_age=settings.refresh_token_expire_days * 86400,
+        path="/",
+    )
+
+
+def _clear_session_cookies(response: Response) -> None:
+    response.delete_cookie(REFRESH_COOKIE, path="/api/v1/auth")
+    response.delete_cookie(SESSION_HINT_COOKIE, path="/")
 
 
 def _user_out(ctx: AuthContext) -> UserOut:
@@ -96,7 +114,7 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
 @router.post("/logout", status_code=200, summary="Revoke the current session")
 def logout(request: Request, response: Response, db: Session = Depends(get_db)) -> dict:
     auth_service.revoke_session(db, request.cookies.get(REFRESH_COOKIE))
-    response.delete_cookie(REFRESH_COOKIE, path="/api/v1/auth")
+    _clear_session_cookies(response)
     return {"message": "Signed out."}
 
 

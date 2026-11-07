@@ -154,6 +154,37 @@ def test_login_rate_limit(client):
         limiter.reset()
 
 
+def test_session_hint_cookie_lifecycle(client):
+    """The readable `cmp_session` hint mirrors the HttpOnly refresh cookie so
+    the SPA can skip its startup refresh probe for anonymous visitors."""
+    saved = dict(client.cookies)
+    client.cookies.clear()
+    try:
+        login = client.post(
+            "/api/v1/auth/login",
+            json={"email": "principal@test.edu", "password": DEMO_PASSWORD},
+        )
+        assert login.status_code == 200
+        set_cookie = login.headers.get("set-cookie", "")
+        assert "cmp_session=1" in set_cookie
+        hint = next(
+            part.strip()
+            for part in set_cookie.split(",")
+            if part.strip().startswith("cmp_session=")
+        )
+        # The hint must stay readable by JavaScript, so no HttpOnly flag.
+        assert "HttpOnly" not in hint
+        assert client.cookies.get("cmp_session") == "1"
+
+        logout = client.post("/api/v1/auth/logout")
+        assert logout.status_code == 200
+        assert 'cmp_session=""' in logout.headers.get("set-cookie", "")
+        assert not client.cookies.get("cmp_session")
+    finally:
+        client.cookies.clear()
+        client.cookies.update(saved)
+
+
 def test_refresh_without_cookie_rejected(client):
     # The session-scoped client carries cookies from earlier logins; drop them
     # so this really exercises the "no refresh cookie" path.
