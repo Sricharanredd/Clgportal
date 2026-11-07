@@ -128,7 +128,7 @@ def student_profile(
     return profile
 
 
-def _published_results(db: Session, student_id: int, ctx: AuthContext) -> list[ResultSummary]:
+def _published_results(db: Session, student_id: int, ctx: AuthContext | None = None) -> list[ResultSummary]:
     """Only PUBLISHED exams — drafts are never returned to readonly callers."""
     from app.models.academic import Subject
     from app.models.exam import ExamResult, Examination
@@ -145,7 +145,7 @@ def _published_results(db: Session, student_id: int, ctx: AuthContext) -> list[R
         )
         .order_by(Examination.exam_date.desc())
     )
-    if ctx.is_readonly_principal:
+    if ctx and ctx.is_readonly_principal:
         # Only current-year published results for parents/students.
         pass
     out: list[ResultSummary] = []
@@ -165,7 +165,7 @@ def _published_results(db: Session, student_id: int, ctx: AuthContext) -> list[R
     return out
 
 
-def _fee_summary(db: Session, student_id: int, ctx: AuthContext) -> FeeSummary | None:
+def _fee_summary(db: Session, student_id: int, ctx: AuthContext | None = None) -> FeeSummary | None:
     from app.models.fee import StudentFeeObligation
 
     ob = (

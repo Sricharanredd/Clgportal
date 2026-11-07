@@ -46,7 +46,7 @@ export default function FacultyView({
           </span>
         ))}
         {data.assigned_subjects.map((s) => (
-          <span key={s} className="rounded-full bg-rose/15 px-3 py-1 text-xs font-medium text-rose">
+          <span key={s} className="rounded-full bg-mint/50 px-3 py-1 text-xs font-medium text-forest">
             {s}
           </span>
         ))}

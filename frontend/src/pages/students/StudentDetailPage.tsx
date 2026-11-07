@@ -57,7 +57,7 @@ export default function StudentDetailPage(): JSX.Element {
 
       {/* Identity header */}
       <div className="glass-card flex flex-wrap items-center gap-4 rounded-2xl p-5">
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet to-rose text-xl font-bold text-white">
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-forest to-leaf text-xl font-bold text-white">
           {data.full_name.charAt(0)}
         </span>
         <div className="min-w-0">

@@ -391,7 +391,7 @@ export default function ResultsPage(): JSX.Element {
                           <td className="py-2 pr-3">
                             <input
                               type="checkbox"
-                              className="h-4 w-4 accent-[#7960ad]"
+                              className="h-4 w-4 accent-[#2F6B3C]"
                               checked={value.is_absent}
                               disabled={!canEdit}
                               aria-label={`Absent for ${r.full_name}`}

@@ -4,11 +4,12 @@
  * authority — this only shapes UX).
  */
 import { useState, type ReactNode } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   CalendarCheck2,
   ClipboardList,
   GraduationCap,
+  IdCard,
   LayoutDashboard,
   LogOut,
   Megaphone,
@@ -23,10 +24,30 @@ interface NavItem {
   label: string;
   icon: ReactNode;
   anyOf?: string[];
+  /** Student Info sections are held in the ?tab= query string. */
+  tab?: string;
+  /** Keep the currently selected student when switching Student Info tabs. */
+  preserveStudent?: boolean;
 }
 
-const NAV_ITEMS: NavItem[] = [
+const VISITOR_NAV_ITEMS: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
+  {
+    to: '/student-info',
+    label: 'Student Info',
+    icon: <IdCard className="h-5 w-5" />,
+    tab: 'overview',
+  },
+];
+
+const STAFF_NAV_ITEMS: NavItem[] = [
+  { to: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
+  {
+    to: '/student-info',
+    label: 'Student Info',
+    icon: <IdCard className="h-5 w-5" />,
+    tab: 'overview',
+  },
   { to: '/students', label: 'Students', icon: <GraduationCap className="h-5 w-5" />, anyOf: ['students:read'] },
   { to: '/attendance', label: 'Attendance', icon: <CalendarCheck2 className="h-5 w-5" />, anyOf: ['attendance:read', 'attendance:correct'] },
   { to: '/results', label: 'Results', icon: <ClipboardList className="h-5 w-5" />, anyOf: ['results:read', 'results:write', 'results:publish'] },
@@ -37,8 +58,32 @@ const NAV_ITEMS: NavItem[] = [
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { hasAny, user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const currentTab = searchParams.get('tab') ?? 'overview';
+  const selectedStudent = searchParams.get('student');
 
-  const items = NAV_ITEMS.filter((item) => !item.anyOf || hasAny(...item.anyOf));
+  // Parents/students get the dedicated portal menu; staff keep the existing
+  // permission-filtered tools.
+  const items = user
+    ? STAFF_NAV_ITEMS.filter((item) => !item.anyOf || hasAny(...item.anyOf))
+    : VISITOR_NAV_ITEMS;
+
+  const itemTo = (item: NavItem): string => {
+    if (!item.tab) return item.to;
+    const params = new URLSearchParams();
+    if (item.preserveStudent && selectedStudent) params.set('student', selectedStudent);
+    params.set('tab', item.tab);
+    return `/student-info?${params.toString()}`;
+  };
+
+  const isActive = (item: NavItem): boolean => {
+    if (location.pathname === '/student-info') {
+      return item.tab !== undefined && item.tab === currentTab;
+    }
+    const basePath = item.to.split('?')[0];
+    return location.pathname === basePath || location.pathname.startsWith(`${basePath}/`);
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -53,42 +98,44 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       <nav className="flex-1 space-y-1 px-3" aria-label="Primary">
-        {items.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            onClick={onNavigate}
-            className={({ isActive }) =>
-              `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                isActive
-                  ? 'nav-active'
-                  : 'text-plum hover:bg-white/60'
-              }`
-            }
-          >
-            {item.icon}
-            {item.label}
-          </NavLink>
-        ))}
+        {items.map((item) => {
+          const active = isActive(item);
+          return (
+            <Link
+              key={item.label}
+              to={itemTo(item)}
+              onClick={onNavigate}
+              aria-current={active ? 'page' : undefined}
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                active ? 'nav-active' : 'text-plum hover:bg-white/60'
+              }`}
+            >
+              {item.icon}
+              {item.label}
+            </Link>
+          );
+        })}
       </nav>
 
       <div className="border-t border-white/60 p-4">
         <div className="mb-3 flex items-center gap-3">
           <span
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet to-rose text-sm font-semibold text-white"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-forest to-leaf text-sm font-semibold text-white"
             aria-hidden
           >
-            {user?.full_name?.charAt(0) ?? '?'}
+            {user?.full_name?.charAt(0) ?? 'V'}
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-plum">{user?.full_name}</p>
-            <p className="truncate text-xs text-muted">{user?.roles.join(' · ')}</p>
+            <p className="truncate text-sm font-medium text-plum">{user?.full_name ?? 'Visitor'}</p>
+            <p className="truncate text-xs text-muted">{user ? user.roles.join(' · ') : 'Parent / Student'}</p>
           </div>
         </div>
-        <button type="button" className="btn-ghost w-full justify-start" onClick={() => void handleLogout()}>
-          <LogOut className="h-4 w-4" />
-          Sign out
-        </button>
+        {user ? (
+          <button type="button" className="btn-ghost w-full justify-start" onClick={() => void handleLogout()}>
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </button>
+        ) : null}
       </div>
     </div>
   );

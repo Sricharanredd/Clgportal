@@ -36,7 +36,7 @@ export default function PrincipalView({
           label="Fee collection"
           value={inr(data.fees_collected)}
           hint={`${inr(data.fees_outstanding)} outstanding · ${data.fee_payers} payers`}
-          accent="rose"
+          accent="periwinkle"
         />
       </div>
 
@@ -63,7 +63,7 @@ export default function PrincipalView({
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-periwinkle/30">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-violet to-rose transition-all"
+                      className="h-full rounded-full bg-gradient-to-r from-forest to-leaf transition-all"
                       style={{ width: `${Math.min(100, b.attendance_pct)}%` }}
                       role="progressbar"
                       aria-valuenow={b.attendance_pct}

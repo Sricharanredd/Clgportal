@@ -26,7 +26,7 @@ export default function AdminView({
         <KpiCard label="Students" value={data.total_students} accent="violet" />
         <KpiCard label="Staff" value={`${data.active_staff}/${data.total_staff}`} accent="sage" />
         <KpiCard label="Branches" value={data.branch_count} accent="periwinkle" />
-        <KpiCard label="Classes" value={data.class_count} accent="rose" />
+        <KpiCard label="Classes" value={data.class_count} accent="periwinkle" />
         <KpiCard label="Academic year" value={data.academic_year ?? '—'} accent="violet" />
       </div>
 

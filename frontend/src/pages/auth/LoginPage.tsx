@@ -75,7 +75,7 @@ export default function LoginPage(): JSX.Element {
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
-          <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet to-rose text-white shadow-lg">
+          <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-forest to-leaf text-white shadow-lg">
             <GraduationCap className="h-7 w-7" aria-hidden />
           </span>
           <h1 className="text-2xl font-bold text-plum">Prism College Portal</h1>

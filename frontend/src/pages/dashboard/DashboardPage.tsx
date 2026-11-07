@@ -17,6 +17,8 @@ import PrincipalView from './PrincipalView';
 import AccountsView from './AccountsView';
 import FacultyView from './FacultyView';
 import AdminView from './AdminView';
+import CollegeOverview from './CollegeOverview';
+
 
 type Role = 'principal' | 'accounts' | 'faculty' | 'administrator';
 
@@ -60,9 +62,15 @@ export default function DashboardPage(): JSX.Element {
 
   if (!role) {
     return (
-      <ErrorState
-        error={new Error('No staff role assigned to this account. Contact the administrator.')}
-      />
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-forest-dark">Welcome to the College Portal</h2>
+          <p className="mt-1 text-sm text-muted">
+            Sri Venkateswara Junior College &mdash; Parent &amp; Student Information Dashboard
+          </p>
+        </div>
+        <CollegeOverview />
+      </div>
     );
   }
   if (loading) return <Spinner label="Loading dashboard…" />;
