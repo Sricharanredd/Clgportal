@@ -25,10 +25,11 @@ import {
 import { DEMO_OPEN_PARENT } from '@/config/demo';
 
 /** Existing application routes — must match src/app/App.tsx (do not change).
- *  Demo flag on: "Parent Portal" goes straight to the open student directory. */
+ *  Both flag states land on /parent: demo mode shows the portal overview,
+ *  the verified flow shows the lookup screen. */
 export const routes = {
   staffLogin: '/admin/login',
-  parentPortal: DEMO_OPEN_PARENT ? '/parent/students' : '/parent',
+  parentPortal: '/parent',
 } as const;
 
 /** College identity — shown in navbar, hero and footer. */

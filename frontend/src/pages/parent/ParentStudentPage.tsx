@@ -23,6 +23,7 @@ import type {
   StudentProfile,
 } from '@/shared/api/types';
 import { Avatar } from '@/components/ui/Avatar';
+import { buttonClass } from '@/components/ui/Button';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Panel, KpiCard } from '@/components/ui/Panel';
@@ -53,6 +54,15 @@ const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'fees', label: 'Fees' },
   { id: 'announcements', label: 'Announcements' },
 ];
+
+/** Shape returned by `useDemoResource` — lets the record header and the
+ *  overview tab share one profile request instead of fetching twice. */
+interface Resource<T> {
+  data: T | null;
+  error: unknown;
+  loading: boolean;
+  reload: () => void;
+}
 
 const STATUS_STYLE: Record<string, string> = {
   present: 'bg-success-bg text-success',
@@ -118,12 +128,38 @@ function StudentRecord({
 
   if (profile.loading && !profile.data) return <Spinner label="Loading student…" />;
   if (profile.error) {
+    // A missing record is a normal case (stale bookmark, deleted student),
+    // not a server failure — send the visitor back to the directory.
+    if (profile.error instanceof ApiError && profile.error.status === 404) {
+      return (
+        <EmptyState
+          icon={<UserRound className="h-5 w-5" aria-hidden />}
+          title="Student not found"
+          description="This record does not exist or is no longer enrolled. Pick another student from the directory."
+          action={
+            <Link
+              to="/parent/students"
+              className={buttonClass({ variant: 'secondary', size: 'sm' })}
+            >
+              Back to directory
+            </Link>
+          }
+        />
+      );
+    }
     return <ErrorState error={profile.error} onRetry={profile.reload} title="Could not load this student" />;
   }
 
   return (
     <div className="space-y-5">
       <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-[13px]">
+        <Link
+          to="/parent"
+          className="rounded px-0.5 text-muted transition-colors hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+        >
+          Parent Portal
+        </Link>
+        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-line-strong" aria-hidden />
         <Link
           to="/parent/students"
           className="rounded px-0.5 text-muted transition-colors hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
@@ -144,7 +180,9 @@ function StudentRecord({
         label="Student record sections"
       />
 
-      {tab === 'overview' ? <OverviewTab studentId={studentId} onTab={onTab} /> : null}
+      {tab === 'overview' ? (
+        <OverviewTab studentId={studentId} profile={profile} onTab={onTab} />
+      ) : null}
       {tab === 'attendance' ? <AttendanceTab studentId={studentId} /> : null}
       {tab === 'results' ? <ResultsTab studentId={studentId} /> : null}
       {tab === 'fees' ? <FeesTab studentId={studentId} /> : null}
@@ -155,12 +193,13 @@ function StudentRecord({
 
 function OverviewTab({
   studentId,
+  profile,
   onTab,
 }: {
   studentId: number;
+  profile: Resource<StudentProfile>;
   onTab: (tab: Tab) => void;
 }) {
-  const profile = useDemoResource<StudentProfile>(`/students/${studentId}`, [studentId]);
   const announcements = useDemoResource<AnnouncementPage>('/announcements', [studentId], {
     page: 1,
     page_size: 1,

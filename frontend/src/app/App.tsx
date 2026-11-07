@@ -52,8 +52,9 @@ export default function App(): JSX.Element {
           </Route>
 
           {/* Parent portal (read-only, own shell, URL-driven).
-              Demo flag on  → /parent/students directory.
-              Demo flag off → verified lookup in ParentLegacy. */}
+              Demo flag on  → /parent overview → /parent/students directory
+                             → /parent/students/:studentId record.
+              Demo flag off → verified lookup in ParentLegacy at /parent. */}
           <Route path="/parent" element={<ParentPortal />} />
           <Route path="/parent/students" element={<ParentPortal />} />
           <Route path="/parent/students/:studentId" element={<ParentPortal />} />

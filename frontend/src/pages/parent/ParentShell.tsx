@@ -4,7 +4,7 @@
  */
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { GraduationCap, Home, Users } from 'lucide-react';
+import { GraduationCap, Home, LayoutDashboard, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { buttonClass } from '@/components/ui/Button';
 import { DEMO_OPEN_PARENT } from '@/config/demo';
@@ -36,6 +36,15 @@ export default function ParentShell({ children }: { children: ReactNode }): JSX.
                 <Badge tone="warning">Demo</Badge>
               </span>
             ) : null}
+            <Link
+              to="/parent"
+              className={buttonClass({ variant: 'ghost', size: 'sm' })}
+              aria-label="Portal overview"
+              title="Portal overview"
+            >
+              <LayoutDashboard className="h-4 w-4" aria-hidden />
+              <span className="hidden sm:inline">Overview</span>
+            </Link>
             <Link
               to="/parent/students"
               className={buttonClass({ variant: 'ghost', size: 'sm' })}

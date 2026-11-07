@@ -230,7 +230,7 @@ export default function HomePage(): JSX.Element {
                 <div className="text-left">
                   <span className="block text-xs font-medium text-slate-500">
                     {DEMO_OPEN_PARENT
-                      ? "Student directory"
+                      ? "Parent overview"
                       : "Self-Service Lookup"}
                   </span>
                   <span className="block text-sm font-extrabold text-blue-950 sm:text-base">

@@ -13,7 +13,7 @@ import type {
 } from "@/shared/api/types";
 import { useDebouncedValue } from "@/shared/lib/hooks";
 import { Avatar } from "@/components/ui/Avatar";
-import { Badge, StatusBadge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/Badge";
 import { SearchField } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Pagination } from "@/components/ui/Pagination";
@@ -91,6 +91,19 @@ export default function ParentDirectoryPage(): JSX.Element {
 
   return (
     <ParentShell>
+      <nav aria-label="Breadcrumb" className="mb-4 flex min-w-0 items-center gap-1.5 text-[13px]">
+        <Link
+          to="/parent"
+          className="rounded px-0.5 text-muted transition-colors hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+        >
+          Parent Portal
+        </Link>
+        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-line-strong" aria-hidden />
+        <span aria-current="page" className="truncate font-semibold text-ink">
+          All students
+        </span>
+      </nav>
+
       <PageHeader
         eyebrow="Parent Portal"
         title="Student directory"
@@ -147,8 +160,25 @@ export default function ParentDirectoryPage(): JSX.Element {
         ) : !data || data.items.length === 0 ? (
           <EmptyState
             icon={<Users className="h-5 w-5" aria-hidden />}
-            title="No students match"
-            description="Try a different name, roll number or branch. The directory lists every active student when no filter is applied."
+            title={q || branch ? "No students match" : "No students yet"}
+            description={
+              q || branch
+                ? "Try a different name, roll number or branch. Clear the filters to see every active student."
+                : "The directory lists active students as soon as they are enrolled."
+            }
+            action={
+              q || branch ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setQuery({ q: null, branch: null, branch_id: null, page: null })
+                  }
+                  className="text-sm font-semibold text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                >
+                  Clear filters
+                </button>
+              ) : undefined
+            }
           />
         ) : (
           <>
@@ -209,6 +239,7 @@ function StudentRow({ student }: { student: ParentDirectoryItem }) {
   return (
     <Link
       to={`/parent/students/${student.student_id}`}
+      aria-label={`Open ${student.full_name}, roll number ${student.roll_number}`}
       className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
     >
       <Avatar name={student.full_name} size="md" />
@@ -225,10 +256,7 @@ function StudentRow({ student }: { student: ParentDirectoryItem }) {
           {student.class_section ? ` · ${student.class_section}` : ""}
         </p>
       </div>
-      <StatusBadge status={student.status} className="hidden sm:inline-flex" />
-      <Badge tone="neutral" className="hidden md:inline-flex">
-        {student.branch_code}
-      </Badge>
+      <StatusBadge status={student.status} />
       <ChevronRight className="h-4 w-4 shrink-0 text-muted" aria-hidden />
     </Link>
   );
