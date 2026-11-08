@@ -149,7 +149,7 @@ export default function LoginPage(): JSX.Element {
           aria-hidden
           style={{
             backgroundImage:
-              'radial-gradient(60% 50% at 15% 5%, rgba(255,255,255,0.20), transparent 70%), radial-gradient(55% 45% at 95% 90%, rgba(230,138,90,0.35), transparent 70%)',
+              'radial-gradient(60% 50% at 15% 5%, rgba(255,255,255,0.18), transparent 70%), radial-gradient(55% 45% at 95% 90%, rgba(220,238,219,0.32), transparent 70%)',
           }}
         />
         <div className="relative">

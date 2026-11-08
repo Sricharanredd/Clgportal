@@ -28,7 +28,7 @@ const EXAM_TYPES = ['unit_test', 'monthly_test', 'midterm', 'final', 'practical'
 
 const STATUS_STYLE: Record<string, string> = {
   draft: 'bg-periwinkle/20 text-muted',
-  entered: 'bg-peach/70 text-violet-600',
+  entered: 'bg-peach/70 text-accent-700',
   published: 'bg-sage/20 text-sage',
 };
 
@@ -403,7 +403,7 @@ export default function ResultsPage(): JSX.Element {
                           <td className="py-2 pr-3">
                             <input
                               type="checkbox"
-                              className="h-4 w-4 accent-[#2F6B3C]"
+                              className="h-4 w-4 accent-[#174C32]"
                               checked={value.is_absent}
                               disabled={!canEdit}
                               aria-label={`Absent for ${r.full_name}`}

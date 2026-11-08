@@ -31,14 +31,14 @@ export default function MonthlyChart({ data }: { data: MonthlyCollection[] }) {
         <AreaChart data={rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="collectionsFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#6D4EC4" stopOpacity={0.28} />
-              <stop offset="100%" stopColor="#6D4EC4" stopOpacity={0.02} />
+              <stop offset="0%" stopColor="#174C32" stopOpacity={0.28} />
+              <stop offset="100%" stopColor="#7DA989" stopOpacity={0.04} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(23,19,38,0.08)" vertical={false} />
-          <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6B6580' }} tickLine={false} axisLine={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(23,76,50,0.12)" vertical={false} />
+          <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#5A6B60' }} tickLine={false} axisLine={false} />
           <YAxis
-            tick={{ fontSize: 11, fill: '#6B6580' }}
+            tick={{ fontSize: 11, fill: '#5A6B60' }}
             width={56}
             tickLine={false}
             axisLine={false}
@@ -51,16 +51,17 @@ export default function MonthlyChart({ data }: { data: MonthlyCollection[] }) {
             labelFormatter={(label) => `Month ${label}`}
             contentStyle={{
               borderRadius: 12,
-              border: '1px solid #E7E4F0',
-              boxShadow: '0 10px 24px -14px rgba(23,19,38,0.22)',
+              border: '1px solid #E3EBDD',
+              background: '#FFFFFF',
+              boxShadow: '0 12px 28px -18px rgba(23,76,50,0.35)',
               fontSize: 12,
             }}
-            labelStyle={{ color: '#6B6580', fontWeight: 600 }}
+            labelStyle={{ color: '#5A6B60', fontWeight: 600 }}
           />
           <Area
             type="monotone"
             dataKey="amount"
-            stroke="#6D4EC4"
+            stroke="#174C32"
             strokeWidth={2}
             fill="url(#collectionsFill)"
             activeDot={{ r: 4, strokeWidth: 2, stroke: '#fff' }}

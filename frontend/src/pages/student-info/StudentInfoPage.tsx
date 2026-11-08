@@ -583,7 +583,7 @@ export default function StudentInfoPage(): JSX.Element {
                   <h3 className="text-xl font-bold text-forest-dark">{profile.full_name}</h3>
                   <span
                     className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                      profile.is_active ? 'bg-sage/20 text-sage' : 'bg-peach/70 text-violet-600'
+                      profile.is_active ? 'bg-sage/20 text-sage' : 'bg-peach/70 text-accent-700'
                     }`}
                   >
                     {profile.is_active ? 'active' : 'inactive'}

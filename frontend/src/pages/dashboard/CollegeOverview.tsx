@@ -45,7 +45,7 @@ type Kpi = {
 
 const STATS = getSampleDashboardStats();
 
-const BRANCH_COLORS = ['#2F6B3C', '#5B9A63', '#A9CDAF'];
+const BRANCH_COLORS = ['#174C32', '#7DA989', '#DCEEDB'];
 
 const BRANCHES = STATS.branches.map((branch, index) => ({
   name: branch.code,
@@ -95,9 +95,9 @@ const KPIS: Kpi[] = [
 ];
 
 const ATTENDANCE = [
-  { name: 'Present', value: STATS.attendance.present, pct: `${STATS.attendance.presentPct}%`, color: '#2F6B3C' },
-  { name: 'Absent', value: STATS.attendance.absent, pct: `${STATS.attendance.absentPct}%`, color: '#A8463F' },
-  { name: 'Late', value: STATS.attendance.late, pct: `${STATS.attendance.latePct}%`, color: '#A9CDAF' },
+  { name: 'Present', value: STATS.attendance.present, pct: `${STATS.attendance.presentPct}%`, color: '#174C32' },
+  { name: 'Absent', value: STATS.attendance.absent, pct: `${STATS.attendance.absentPct}%`, color: '#B02A37' },
+  { name: 'Late', value: STATS.attendance.late, pct: `${STATS.attendance.latePct}%`, color: '#7DA989' },
 ];
 
 const PASS_TREND = STATS.passTrend;
@@ -117,7 +117,7 @@ const ABOUT_FACTS = [
 
 const TOOLTIP_STYLE = {
   borderRadius: 12,
-  border: '1px solid rgba(47,107,60,0.25)',
+  border: '1px solid rgba(23,76,50,0.28)',
   fontSize: 12,
 };
 
@@ -228,16 +228,16 @@ export default function CollegeOverview(): JSX.Element {
               <AreaChart data={PASS_TREND} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="passTrendFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2F6B3C" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#2F6B3C" stopOpacity={0.02} />
+                    <stop offset="0%" stopColor="#174C32" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#174C32" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(47,107,60,0.15)" vertical={false} />
-                <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#5B6E60' }} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(23,76,50,0.14)" vertical={false} />
+                <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#5A6B60' }} tickLine={false} />
                 <YAxis
                   domain={[70, 100]}
                   ticks={[70, 80, 90, 100]}
-                  tick={{ fontSize: 11, fill: '#5B6E60' }}
+                  tick={{ fontSize: 11, fill: '#5A6B60' }}
                   width={40}
                   tickFormatter={(value: number) => `${value}%`}
                 />
@@ -249,10 +249,10 @@ export default function CollegeOverview(): JSX.Element {
                 <Area
                   type="monotone"
                   dataKey="pass"
-                  stroke="#2F6B3C"
+                  stroke="#174C32"
                   strokeWidth={2}
                   fill="url(#passTrendFill)"
-                  dot={{ r: 3, fill: '#2F6B3C', strokeWidth: 0 }}
+                  dot={{ r: 3, fill: '#174C32', strokeWidth: 0 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -263,12 +263,12 @@ export default function CollegeOverview(): JSX.Element {
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={BRANCHES} margin={{ top: 16, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(47,107,60,0.15)" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#5B6E60' }} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(23,76,50,0.14)" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#5A6B60' }} tickLine={false} />
                 <YAxis
                   domain={[0, BRANCH_AXIS_MAX]}
                   ticks={BRANCH_AXIS_TICKS}
-                  tick={{ fontSize: 11, fill: '#5B6E60' }}
+                  tick={{ fontSize: 11, fill: '#5A6B60' }}
                   width={32}
                 />
                 <Tooltip
@@ -279,7 +279,7 @@ export default function CollegeOverview(): JSX.Element {
                   {BRANCHES.map((branch) => (
                     <Cell key={branch.name} fill={branch.color} />
                   ))}
-                  <LabelList dataKey="students" position="top" fill="#1E3A26" fontSize={11} />
+                  <LabelList dataKey="students" position="top" fill="#142B1E" fontSize={11} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>

@@ -69,7 +69,7 @@ export function DataTable<T>({
         <table className="w-full border-collapse text-left text-sm">
           {caption ? <caption className="sr-only">{caption}</caption> : null}
           <thead>
-            <tr className="border-b border-line bg-surface-2/60">
+            <tr className="border-b border-line bg-gradient-to-r from-brand-50/80 via-surface-2/60 to-surface-2/60">
               {columns.map((column) => {
                 const active = sort?.id === column.id;
                 return (
@@ -112,7 +112,7 @@ export function DataTable<T>({
           </thead>
           <tbody className="divide-y divide-line">
             {rows.map((row) => (
-              <tr key={rowKey(row)} className="group relative transition-colors hover:bg-surface-2/70">
+              <tr key={rowKey(row)} className="group relative transition-colors hover:bg-brand-50/70">
                 {columns.map((column, index) => (
                   <td
                     key={column.id}

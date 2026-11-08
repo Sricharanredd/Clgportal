@@ -13,41 +13,47 @@
    needs a different text tone). Nothing else in the app hard-codes colour.
    ═══════════════════════════════════════════════════════════════════════ */
 :root {
-  /* ── Primary — refined deep purple ─────────────────────────────────── */
-  --brand-50: 244 240 254; /* #F4F0FE  tints, active nav            */
-  --brand-100: 231 223 251; /* #E7DFFB  rings, hover fills          */
-  --brand-200: 210 197 246; /* #D2C5F6  decorative connectors       */
-  --brand-400: 139 118 214; /* #8B76D6  gradients, chart accents    */
-  --brand-500: 109 78 196; /* #6D4EC4  primary action               */
-  --brand-600: 90 62 168; /* #5A3EA8  hover / links                */
-  --brand-700: 71 49 138; /* #47318A  pressed / small text         */
+  /* ── Primary — white / pista green / dark green ────────────────────── */
+  --brand-50: 234 244 230; /* #EAF4E6  active nav, soft pista tints */
+  --brand-100: 220 238 219; /* #DCEEDB  Pista Green                  */
+  --brand-200: 227 235 221; /* #E3EBDD  Soft Border / connectors     */
+  --brand-300: 183 211 190; /* #B7D3BE  light secondary green        */
+  --brand-400: 125 169 137; /* #7DA989  Secondary Green              */
+  --brand-450: 46 107 74; /* #2E6B4A  gradient midpoint            */
+  --brand-500: 23 76 50; /* #174C32  Dark Green — primary action   */
+  --brand-600: 18 61 40; /* #123D28  hover / links                */
+  --brand-700: 13 46 30; /* #0D2E1E  pressed / small text         */
+  --brand-800: 9 35 23; /* #092317  deep panels                  */
+  --brand-900: 6 24 16; /* #061810  footer / hero                */
 
-  /* ── Warm accent — terracotta (secondary highlights) ───────────────── */
-  --accent-50: 253 241 234; /* #FDF1EA */
-  --accent-100: 251 223 209; /* #FBDFD1 */
-  --accent-500: 230 138 90; /* #E68A5A */
-  --accent-600: 184 92 52; /* #B85C34 */
-  --accent-700: 154 74 40; /* #9A4A28 */
+  /* ── Warm accent — cream + secondary green ─────────────────────────── */
+  --accent-50: 250 247 237; /* #FAF7ED */
+  --accent-100: 245 240 223; /* #F5F0DF  Cream */
+  --accent-200: 235 227 203; /* #EBE3CB */
+  --accent-400: 168 197 175; /* #A8C5AF */
+  --accent-500: 125 169 137; /* #7DA989  Secondary Green */
+  --accent-600: 95 139 109; /* #5F8B6D */
+  --accent-700: 72 112 86; /* #487056 */
 
   /* ── Neutrals ──────────────────────────────────────────────────────── */
-  --ink: 23 19 38; /* #171326  headings                     */
-  --ink-soft: 59 53 80; /* #3B3550  body copy                    */
-  --muted: 107 101 128; /* #6B6580  secondary copy (5.1:1 on white) */
-  --canvas: 246 245 250; /* #F6F5FA  page background              */
+  --ink: 20 43 30; /* #142B1E  headings (dark green)        */
+  --ink-soft: 47 74 58; /* #2F4A3A  body copy                    */
+  --muted: 90 107 96; /* #5A6B60  secondary copy (5.6:1 on white) */
+  --canvas: 255 255 255; /* #FFFFFF  page background              */
   --surface: 255 255 255; /* #FFFFFF  cards                        */
-  --surface-2: 251 250 253; /* #FBFAFD  inset rows / table heads     */
-  --line: 231 228 240; /* #E7E4F0  1px hairlines                */
-  --line-strong: 214 209 228; /* #D6D1E4  dividers, tracks            */
+  --surface-2: 247 250 245; /* #F7FAF5  inset rows / table heads     */
+  --line: 227 235 221; /* #E3EBDD  Soft Border — hairlines      */
+  --line-strong: 205 219 199; /* #CDDBC7  dividers, tracks            */
 
   /* ── Semantic status ───────────────────────────────────────────────── */
-  --success: 47 107 79; /* #2F6B4F */
-  --success-bg: 234 244 238; /* #EAF4EE */
-  --warning: 138 90 18; /* #8A5A12 */
-  --warning-bg: 253 243 227; /* #FDF3E3 */
-  --danger: 169 45 62; /* #A92D3E */
-  --danger-bg: 251 234 236; /* #FBEAEC */
-  --info: 90 62 168; /* #5A3EA8 */
-  --info-bg: 244 240 254; /* #F4F0FE */
+  --success: 31 122 79; /* #1F7A4F  natural green */
+  --success-bg: 232 245 236; /* #E8F5EC */
+  --warning: 161 98 7; /* #A16207  amber — kept distinct */
+  --warning-bg: 253 246 227; /* #FDF6E3 */
+  --danger: 176 42 55; /* #B02A37  red — kept distinct */
+  --danger-bg: 252 235 237; /* #FCEBED */
+  --info: 47 92 128; /* #2F5C80  muted blue — kept distinct */
+  --info-bg: 234 243 248; /* #EAF3F8 */
 
   /* ── Radii ─────────────────────────────────────────────────────────── */
   --radius-xs: 0.375rem; /*  6px  tiny chips          */
@@ -58,12 +64,12 @@
   --radius-2xl: 1.5rem; /* 24px  hero cards        */
   --radius-full: 9999px;
 
-  /* ── Elevation (layered, low-contrast) ─────────────────────────────── */
+  /* ── Elevation (layered, low-contrast, green-tinted) ───────────────── */
   --shadow-xs: 0 1px 2px rgb(var(--ink) / 0.05);
-  --shadow-sm: 0 1px 2px rgb(var(--ink) / 0.04), 0 1px 3px rgb(var(--ink) / 0.06);
-  --shadow-md: 0 1px 2px rgb(var(--ink) / 0.04), 0 10px 24px -14px rgb(var(--ink) / 0.22);
-  --shadow-lg: 0 1px 3px rgb(var(--ink) / 0.05), 0 26px 50px -26px rgb(var(--ink) / 0.3);
-  --shadow-focus: 0 0 0 4px rgb(var(--brand-500) / 0.18);
+  --shadow-sm: 0 1px 2px rgb(var(--ink) / 0.04), 0 1px 3px rgb(var(--ink) / 0.05);
+  --shadow-md: 0 1px 2px rgb(var(--ink) / 0.04), 0 12px 28px -18px rgb(var(--brand-500) / 0.28);
+  --shadow-lg: 0 1px 3px rgb(var(--ink) / 0.05), 0 28px 54px -30px rgb(var(--brand-500) / 0.34);
+  --shadow-focus: 0 0 0 4px rgb(var(--brand-400) / 0.22);
 
   /* ── Motion ────────────────────────────────────────────────────────── */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -94,10 +100,11 @@
   body {
     min-height: 100vh;
     background-color: rgb(var(--canvas));
-    /* Calm neutral canvas with two whisper-soft brand washes. */
+    /* White → very light pista green, with two whisper-soft washes. */
     background-image:
-      radial-gradient(1100px 520px at 12% -12%, rgb(var(--brand-500) / 0.07), transparent 62%),
-      radial-gradient(900px 460px at 102% -4%, rgb(var(--accent-500) / 0.06), transparent 58%);
+      radial-gradient(1200px 620px at 6% -12%, rgb(var(--brand-100) / 0.55), transparent 62%),
+      radial-gradient(1000px 520px at 100% -6%, rgb(var(--accent-100) / 0.65), transparent 58%),
+      linear-gradient(180deg, #ffffff 0%, #f8fbf5 52%, #f1f8ed 100%);
     background-attachment: fixed;
     color: rgb(var(--ink));
     font-family: var(--font-sans);
@@ -152,6 +159,7 @@
   /* ── Surfaces ──────────────────────────────────────────────────────── */
   .card {
     background-color: rgb(var(--surface));
+    background-image: linear-gradient(180deg, #ffffff 0%, #fdfefc 100%);
     border: 1px solid rgb(var(--line));
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-md);
@@ -159,14 +167,26 @@
 
   .card-flat {
     background-color: rgb(var(--surface));
+    background-image: linear-gradient(180deg, #ffffff 0%, #fbfdf9 100%);
     border: 1px solid rgb(var(--line));
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-xs);
   }
 
+  /* Cream → white section wash (dashboard bands, hero panels). */
+  .section-cream {
+    background-image: linear-gradient(180deg, rgb(var(--accent-50)) 0%, rgb(var(--surface)) 100%);
+  }
+
+  /* Pista → white highlight card. */
+  .section-pista {
+    background-image: linear-gradient(180deg, rgb(var(--brand-50)) 0%, rgb(var(--surface)) 100%);
+  }
+
   /* Legacy class names — kept so untouched screens inherit the new look. */
   .glass-card {
     background-color: rgb(var(--surface));
+    background-image: linear-gradient(180deg, #ffffff 0%, #fbfdf9 100%);
     border: 1px solid rgb(var(--line));
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-md);
@@ -191,8 +211,9 @@
   /* Active pill (sidebar links, tab pills). */
   .nav-active {
     background-color: rgb(var(--brand-50));
+    background-image: linear-gradient(90deg, rgb(var(--brand-100) / 0.9) 0%, rgb(var(--brand-50)) 100%);
     color: rgb(var(--brand-700));
-    box-shadow: inset 0 0 0 1px rgb(var(--brand-100));
+    box-shadow: inset 0 0 0 1px rgb(var(--brand-200));
   }
 
   /* ── Buttons (legacy helpers; new code uses <Button/>) ─────────────── */
@@ -202,13 +223,14 @@
     justify-content: center;
     gap: 0.5rem;
     background-color: rgb(var(--brand-500));
+    background-image: linear-gradient(135deg, rgb(var(--brand-500)) 0%, rgb(var(--brand-450)) 100%);
     color: #fff;
     border-radius: var(--radius-md);
     padding: 0.5rem 0.9375rem;
     font-size: 0.875rem;
     font-weight: 600;
     line-height: 1.35rem;
-    box-shadow: var(--shadow-xs);
+    box-shadow: 0 8px 18px -14px rgb(var(--brand-500) / 0.9);
     transition:
       background-color var(--dur-fast) ease,
       box-shadow var(--dur-fast) ease,
@@ -217,11 +239,13 @@
 
   .btn-primary:hover:not(:disabled) {
     background-color: rgb(var(--brand-600));
-    box-shadow: 0 8px 18px -12px rgb(var(--brand-500) / 0.9);
+    background-image: linear-gradient(135deg, rgb(var(--brand-600)) 0%, rgb(var(--brand-500)) 100%);
+    box-shadow: 0 10px 22px -14px rgb(var(--brand-500) / 0.9);
   }
 
   .btn-primary:active:not(:disabled) {
     background-color: rgb(var(--brand-700));
+    background-image: linear-gradient(135deg, rgb(var(--brand-700)) 0%, rgb(var(--brand-600)) 100%);
     transform: translateY(1px);
   }
 
@@ -500,26 +524,30 @@
   width: 100%;
 }
 
-/* Filled primary (brand) */
+/* Filled primary (brand) — dark green → medium green */
 .lp-btn-brand {
   background-color: rgb(var(--brand-500));
+  background-image: linear-gradient(135deg, rgb(var(--brand-500)) 0%, rgb(var(--brand-450)) 100%);
   color: #ffffff;
   box-shadow: 0 10px 24px -14px rgb(var(--brand-500) / 0.9);
 }
 
 .lp-btn-brand:hover {
   background-color: rgb(var(--brand-600));
+  background-image: linear-gradient(135deg, rgb(var(--brand-600)) 0%, rgb(var(--brand-500)) 100%);
 }
 
-/* Filled secondary (warm accent) */
+/* Filled secondary (pista green) */
 .lp-btn-accent {
-  background-color: rgb(var(--accent-600));
-  color: #ffffff;
-  box-shadow: 0 10px 24px -14px rgb(var(--accent-600) / 0.9);
+  background-color: rgb(var(--brand-100));
+  border-color: rgb(var(--brand-200));
+  color: rgb(var(--brand-700));
+  box-shadow: 0 8px 18px -16px rgb(var(--brand-500) / 0.7);
 }
 
 .lp-btn-accent:hover {
-  background-color: rgb(var(--accent-700));
+  background-color: rgb(var(--brand-200));
+  border-color: rgb(var(--brand-300));
 }
 
 /* Outline (staff login) — light plate with a brand hairline */
@@ -527,7 +555,7 @@
   background-color: rgba(255, 255, 255, 0.72);
   border-color: rgb(var(--brand-500) / 0.38);
   color: rgb(var(--brand-600));
-  box-shadow: 0 1px 2px rgba(48, 39, 68, 0.05);
+  box-shadow: 0 1px 2px rgb(var(--brand-500) / 0.08);
 }
 
 .lp-btn-outline:hover {
@@ -546,7 +574,7 @@
   border-radius: 0.75rem;
   color: rgb(var(--ink));
   background-color: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(121, 96, 173, 0.18);
+  border: 1px solid rgb(var(--brand-500) / 0.18);
   transition:
     background-color 150ms ease,
     transform 150ms ease;
@@ -558,6 +586,33 @@
 
 .lp-icon-btn:active {
   transform: scale(0.94);
+}
+
+/* ── Public landing page surfaces ────────────────────────────────────── */
+.lp-canvas {
+  background-color: rgb(var(--canvas));
+  background-image: linear-gradient(180deg, #ffffff 0%, #f8fbf5 55%, #f1f8ed 100%);
+}
+
+.lp-topbar {
+  background-image: linear-gradient(90deg, rgb(var(--brand-900)) 0%, rgb(var(--brand-800)) 55%, rgb(var(--brand-500)) 100%);
+}
+
+.lp-hero-overlay {
+  background-image: linear-gradient(
+    100deg,
+    rgba(6, 24, 16, 0.92) 0%,
+    rgba(9, 35, 23, 0.8) 46%,
+    rgba(23, 76, 50, 0.44) 100%
+  );
+}
+
+.lp-hero-stats {
+  background-color: rgba(6, 24, 16, 0.78);
+}
+
+.lp-footer {
+  background-image: linear-gradient(180deg, rgb(var(--brand-800)) 0%, rgb(var(--brand-900)) 100%);
 }
 
 /* Motion preferences: show everything, stop looping/transform animation */

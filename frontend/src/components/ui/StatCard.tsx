@@ -6,12 +6,22 @@ import { ArrowUpRight } from 'lucide-react';
 export type StatTone = 'brand' | 'accent' | 'success' | 'warning' | 'danger' | 'neutral';
 
 const ICON_TONES: Record<StatTone, string> = {
-  brand: 'bg-brand-50 text-brand-600',
-  accent: 'bg-accent-50 text-accent-600',
-  success: 'bg-success-bg text-success',
-  warning: 'bg-warning-bg text-warning',
-  danger: 'bg-danger-bg text-danger',
-  neutral: 'bg-surface-2 text-ink-soft',
+  brand: 'bg-brand-100/80 text-brand-700 ring-1 ring-brand-200/70',
+  accent: 'bg-accent-100 text-accent-700 ring-1 ring-accent-200',
+  success: 'bg-success-bg text-success ring-1 ring-success/15',
+  warning: 'bg-warning-bg text-warning ring-1 ring-warning/15',
+  danger: 'bg-danger-bg text-danger ring-1 ring-danger/15',
+  neutral: 'bg-surface-2 text-ink-soft ring-1 ring-line',
+};
+
+/** KPI surfaces — subtle cream / pista / white combinations. */
+const SURFACES: Record<StatTone, string> = {
+  brand: 'bg-gradient-to-br from-brand-100/75 via-white to-white',
+  accent: 'bg-gradient-to-br from-accent-100 via-white to-white',
+  success: 'bg-gradient-to-br from-success-bg via-white to-white',
+  warning: 'bg-gradient-to-br from-warning-bg via-white to-white',
+  danger: 'bg-gradient-to-br from-danger-bg via-white to-white',
+  neutral: 'bg-gradient-to-br from-white via-surface-2 to-white',
 };
 
 export function StatCard({
@@ -57,8 +67,8 @@ export function StatCard({
     </>
   );
 
-  const classes = `card group block p-4 text-left transition-[border-color,box-shadow,transform] duration-150 ease-out ${
-    to || onClick ? 'hover:border-brand-200 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2' : ''
+  const classes = `card group block p-4 text-left transition-[border-color,box-shadow,transform] duration-150 ease-out ${SURFACES[tone]} ${
+    to || onClick ? 'hover:border-brand-300 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2' : ''
   } ${className}`;
 
   if (to) {

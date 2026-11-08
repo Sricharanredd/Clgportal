@@ -27,10 +27,10 @@ export function CardHeader({
   className?: string;
 }) {
   return (
-    <div className={`flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4 ${className}`}>
+    <div className={`flex flex-wrap items-start justify-between gap-3 rounded-t-card border-b border-line bg-gradient-to-r from-accent-50/90 via-surface to-surface px-5 py-4 ${className}`}>
       <div className="flex min-w-0 items-start gap-3">
         {icon ? (
-          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-panel bg-brand-50 text-brand-600">
+          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-panel bg-brand-100/80 text-brand-700 ring-1 ring-brand-200/70">
             {icon}
           </span>
         ) : null}
