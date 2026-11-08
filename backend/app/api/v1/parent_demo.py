@@ -30,6 +30,7 @@ from app.schemas.announcements import AnnouncementOut, AnnouncementPage
 from app.schemas.fees import StudentFeesOut
 from app.schemas.parent import (
     AttendanceHistoryEntry,
+    DemoOverview,
     ParentDirectoryItem,
     ParentDirectoryPage,
 )
@@ -51,6 +52,56 @@ def _require_student(db: Session, student_id: int):
     if parts is None:
         raise AppError(404, "NOT_FOUND", "Student record not found.")
     return parts
+
+
+@router.get(
+    "/overview",
+    response_model=DemoOverview,
+    summary="[demo] College-wide overview (real aggregates, no sample data)",
+)
+def overview(db: Session = Depends(get_db)) -> DemoOverview:
+    _require_demo()
+    return svc.demo_overview(db)
+
+
+@router.get(
+    "/lookup",
+    response_model=ParentDirectoryItem,
+    summary="[demo] Exact branch + roll-number lookup",
+    responses={404: {"description": "No matching active student"}},
+)
+def lookup(
+    branch_id: int = Query(ge=1),
+    roll_number: str = Query(min_length=2, max_length=30),
+    db: Session = Depends(get_db),
+) -> ParentDirectoryItem:
+    _require_demo()
+    student = svc.find_student(db, branch_id, roll_number)
+    if student is None:
+        # Demo seed convention: BiPC rolls are stored as BIP25001 while the
+        # college prints BIPC25001. Accept the friendlier spelling too.
+        compact = roll_number.strip().upper().replace(" ", "")
+        if compact.startswith("BIPC"):
+            student = svc.find_student(db, branch_id, f"BIP{compact[4:]}")
+    if student is None:
+        raise AppError(
+            404,
+            "NO_STUDENT",
+            "No student found for this roll number in the selected branch.",
+        )
+
+    student, branch, cls, year = _require_student(db, student.id)
+    return ParentDirectoryItem(
+        student_id=student.id,
+        roll_number=student.roll_number,
+        full_name=student.full_name,
+        branch_id=branch.id,
+        branch_code=branch.code,
+        branch_name=branch.name,
+        class_section=cls.section_name if cls else None,
+        academic_year=year.name if year else None,
+        status="active" if student.is_active else "inactive",
+    )
 
 
 @router.get(

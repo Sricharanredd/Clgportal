@@ -1,5 +1,5 @@
 """Parent lookup/verification schemas (public, read-only flow)."""
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -146,6 +146,71 @@ class ParentDirectoryPage(BaseModel):
     pages: int
 
 
+class DemoBranchStat(BaseModel):
+    """Active-student strength for one branch (demo overview)."""
+
+    branch_id: int
+    code: str
+    name: str
+    students: int = 0
+    share_pct: float = 0.0
+
+
+class DemoAttendanceStat(BaseModel):
+    """Attendance totals for the latest submitted session date.
+
+    Only real submitted records are counted; an empty result means no
+    attendance has been submitted yet.
+    """
+
+    attendance_date: date | None = None
+    present: int = 0
+    absent: int = 0
+    late: int = 0
+    excused: int = 0
+    on_duty: int = 0
+    total: int = 0
+    present_pct: float = 0.0
+    absent_pct: float = 0.0
+    late_pct: float = 0.0
+
+
+class DemoYearPassRate(BaseModel):
+    """Published-result pass rate for one year of study."""
+
+    year_of_study: int
+    passed: int = 0
+    total: int = 0
+    pass_pct: float = 0.0
+
+
+class DemoExamPassRate(BaseModel):
+    """Pass rate of one published examination (real results only)."""
+
+    label: str
+    pass_pct: float = 0.0
+
+
+class DemoOverview(BaseModel):
+    """College-wide figures for the public demo overview.
+
+    Every value is aggregated from the database. When a dataset is empty the
+    matching block is zeroed rather than replaced with invented numbers.
+    """
+
+    total_students: int = 0
+    branches: list[DemoBranchStat] = Field(default_factory=list)
+    attendance: DemoAttendanceStat = Field(default_factory=DemoAttendanceStat)
+    first_year_pass: DemoYearPassRate = Field(
+        default_factory=lambda: DemoYearPassRate(year_of_study=1)
+    )
+    second_year_pass: DemoYearPassRate = Field(
+        default_factory=lambda: DemoYearPassRate(year_of_study=2)
+    )
+    exam_trend: list[DemoExamPassRate] = Field(default_factory=list)
+    generated_at: datetime
+
+
 __all__ = [
     "ParentLookupRequest",
     "ParentLookupResponse",
@@ -157,4 +222,9 @@ __all__ = [
     "ParentChildSummary",
     "ParentDirectoryItem",
     "ParentDirectoryPage",
+    "DemoBranchStat",
+    "DemoAttendanceStat",
+    "DemoYearPassRate",
+    "DemoExamPassRate",
+    "DemoOverview",
 ]

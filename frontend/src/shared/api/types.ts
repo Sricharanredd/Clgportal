@@ -538,51 +538,8 @@ export interface AnnouncementOut {
 export type AnnouncementPage = Page<AnnouncementOut>;
 
 // ---------------------------------------------------------------------------
-// Parent portal
+// Parent portal (demo mode — the only parent frontend architecture)
 // ---------------------------------------------------------------------------
-export interface ParentLookupRequest {
-  branch_id: number;
-  roll_number: string;
-}
-
-export interface MaskedStudent {
-  student_id: number;
-  roll_number: string;
-  masked_name: string;
-  branch_code: string;
-  class_section: string | null;
-}
-
-export interface ParentLookupResponse {
-  lookup_token: string;
-  expires_in: number;
-  student: MaskedStudent;
-  verification_required: boolean;
-  hint: string;
-}
-
-export interface ParentSearchMatch {
-  branch_id: number;
-  roll_number: string;
-  masked_name: string;
-  branch_code: string;
-  class_section: string | null;
-}
-
-export interface ParentVerifyRequest {
-  lookup_token: string;
-  access_code: string;
-}
-
-export interface ParentChildSummary {
-  student_id: number;
-  roll_number: string;
-  full_name: string;
-  branch_code: string;
-  class_section: string | null;
-  academic_year: string | null;
-}
-
 /** One row in the open (demo) parent directory. */
 export interface ParentDirectoryItem {
   student_id: number;
@@ -598,11 +555,46 @@ export interface ParentDirectoryItem {
 
 export type ParentDirectoryPage = Page<ParentDirectoryItem>;
 
-export interface ParentSessionResponse {
-  access_token: string;
-  token_type: string;
-  expires_in: number;
-  parent_name: string;
-  permissions: string[];
-  children: ParentChildSummary[];
+/** College-wide aggregates from GET /parent/demo/overview (real DB data). */
+export interface DemoBranchStat {
+  branch_id: number;
+  code: string;
+  name: string;
+  students: number;
+  share_pct: number;
+}
+
+export interface DemoAttendanceStat {
+  attendance_date: string | null;
+  present: number;
+  absent: number;
+  late: number;
+  excused: number;
+  on_duty: number;
+  total: number;
+  present_pct: number;
+  absent_pct: number;
+  late_pct: number;
+}
+
+export interface DemoYearPassRate {
+  year_of_study: number;
+  passed: number;
+  total: number;
+  pass_pct: number;
+}
+
+export interface DemoExamPassRate {
+  label: string;
+  pass_pct: number;
+}
+
+export interface DemoOverview {
+  total_students: number;
+  branches: DemoBranchStat[];
+  attendance: DemoAttendanceStat;
+  first_year_pass: DemoYearPassRate;
+  second_year_pass: DemoYearPassRate;
+  exam_trend: DemoExamPassRate[];
+  generated_at: string;
 }

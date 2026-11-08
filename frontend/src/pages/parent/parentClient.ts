@@ -1,106 +1,32 @@
 /**
- * Isolated client for the parent portal.
+ * Client for the open (demo) parent portal.
  *
- * Parent tokens are issued by /parent/verify (no refresh cookie is involved),
- * so this client intentionally does NOT share the staff axios instance or its
- * silent-refresh logic. On 401 the portal restarts the lookup flow.
- *
- * The token is kept in memory plus `sessionStorage` (per-tab, cleared when the
- * tab closes) so a browser refresh on /parent/student/:id keeps the session.
- * It is never placed in a URL, localStorage, or a cookie.
+ * The demo endpoints are unauthenticated and flag-gated on the server: when
+ * `DEMO_OPEN_PARENT` is false they return 404. This client therefore has no
+ * token handling and never triggers the staff refresh flow.
  */
 import axios, { AxiosError } from 'axios';
 import type { ApiErrorBody } from '@/shared/api/types';
 import { ApiError, toApiError } from '@/shared/api/client';
 
-const SESSION_KEY = 'cmp.parent.session';
+const demoApi = axios.create({ baseURL: '/api/v1' });
 
-interface StoredSession {
-  token: string;
-  parentName: string;
-}
-
-let session: StoredSession | null = null;
-
-function readStored(): StoredSession | null {
-  if (session) return session;
-  try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
-    if (raw) session = JSON.parse(raw) as StoredSession;
-  } catch {
-    // Storage unavailable (private mode etc.) — fall back to memory-only.
-  }
-  return session;
-}
-
-export function setParentSession(token: string, parentName: string): void {
-  session = { token, parentName };
-  try {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  } catch {
-    // Memory-only fallback.
-  }
-}
-
-export function clearParentSession(): void {
-  session = null;
-  try {
-    sessionStorage.removeItem(SESSION_KEY);
-  } catch {
-    // Memory-only fallback.
-  }
-}
-
-export function getParentToken(): string | null {
-  return readStored()?.token ?? null;
-}
-
-export function getParentName(): string | null {
-  return readStored()?.parentName ?? null;
-}
-
-export const parentApi = axios.create({ baseURL: '/api/v1' });
-
-parentApi.interceptors.request.use((config) => {
-  const token = getParentToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-parentApi.interceptors.response.use(
+demoApi.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiErrorBody>) => Promise.reject(toApiError(error)),
 );
 
-export async function parentGet<T>(
-  url: string,
-  params?: Record<string, string | number | boolean | undefined>,
-): Promise<T> {
-  try {
-    const { data } = await parentApi.get<T>(url, { params });
-    return data;
-  } catch (err) {
-    throw toApiError(err);
-  }
-}
-
-export async function parentPost<T>(url: string, body?: unknown): Promise<T> {
-  try {
-    const { data } = await parentApi.post<T>(url, body);
-    return data;
-  } catch (err) {
-    throw toApiError(err);
-  }
-}
-
-/** Unauthenticated GET against `/parent/demo/*` (flag-gated on the server). */
+/** GET against `/parent/demo/*` (flag-gated on the server). */
 export async function demoGet<T>(
   url: string,
   params?: Record<string, string | number | boolean | undefined>,
 ): Promise<T> {
-  return parentGet<T>(`/parent/demo${url}`, params);
+  try {
+    const { data } = await demoApi.get<T>(`/parent/demo${url}`, { params });
+    return data;
+  } catch (err) {
+    throw toApiError(err);
+  }
 }
 
 export { ApiError };

@@ -24,6 +24,8 @@ def test_demo_routes_hidden_when_flag_off(client, monkeypatch):
         "/api/v1/parent/demo/students/1",
         "/api/v1/parent/demo/students/1/fees",
         "/api/v1/parent/demo/announcements",
+        "/api/v1/parent/demo/overview",
+        "/api/v1/parent/demo/lookup?branch_id=1&roll_number=MPC26001",
     ):
         r = client.get(path)
         assert r.status_code == 404, path
@@ -170,3 +172,65 @@ def test_demo_announcements_are_parent_audience_only(client, monkeypatch):
     assert all(a["audience"] in {"parents", "all"} for a in data["items"])
     # Author identity is staff-only information.
     assert all(a["created_by_name"] is None for a in data["items"])
+
+
+def test_demo_lookup_exact_roll_and_bipc_alias(client, monkeypatch):
+    _flag(monkeypatch, True)
+
+    exact = client.get(
+        "/api/v1/parent/demo/lookup",
+        params={"branch_id": 1, "roll_number": "mpc26001"},
+    )
+    assert exact.status_code == 200, exact.text
+    assert exact.json()["roll_number"] == "MPC26001"
+
+    # Seed stores BiPC rolls as BIP…; the printed BIPC… spelling is accepted.
+    alias = client.get(
+        "/api/v1/parent/demo/lookup",
+        params={"branch_id": 2, "roll_number": "BIPC26001"},
+    )
+    assert alias.status_code == 200, alias.text
+    assert alias.json()["roll_number"] == "BIP26001"
+
+    missing = client.get(
+        "/api/v1/parent/demo/lookup",
+        params={"branch_id": 2, "roll_number": "MPC26001"},
+    )
+    assert missing.status_code == 404
+
+
+def test_demo_overview_uses_real_aggregates(client, monkeypatch):
+    _flag(monkeypatch, True)
+    r = client.get("/api/v1/parent/demo/overview")
+    assert r.status_code == 200, r.text
+    data = r.json()
+
+    assert data["total_students"] == 7
+    counts = {b["code"]: b["students"] for b in data["branches"]}
+    assert counts["MPC"] == 4
+    assert counts["BiPC"] == 3
+    # Every active branch is listed (other tests may add empty branches), and
+    # the counts always add up to the active student total.
+    assert sum(counts.values()) == data["total_students"]
+    # The shared fixture seeds no attendance/exams itself, but other test
+    # modules may add real rows first. Every figure must still be internally
+    # consistent — never an invented placeholder.
+    att = data["attendance"]
+    assert att["total"] == (
+        att["present"] + att["absent"] + att["late"] + att["excused"] + att["on_duty"]
+    )
+    if att["total"] == 0:
+        assert att["attendance_date"] is None
+        assert att["present_pct"] == 0
+    else:
+        assert att["attendance_date"] is not None
+
+    for block in ("first_year_pass", "second_year_pass"):
+        rate = data[block]
+        assert 0 <= rate["passed"] <= rate["total"]
+        expected = round(rate["passed"] / rate["total"] * 100, 1) if rate["total"] else 0.0
+        assert rate["pass_pct"] == expected
+
+    for exam in data["exam_trend"]:
+        assert exam["label"]
+        assert 0 <= exam["pass_pct"] <= 100

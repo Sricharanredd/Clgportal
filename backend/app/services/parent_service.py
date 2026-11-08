@@ -22,7 +22,15 @@ from app.core.errors import AppError
 from app.core.security import create_access_token, decode_token, verify_password
 from app.models.academic import AcademicYear, Branch, ClassSection
 from app.models.student import Enrollment, Parent, Student, StudentParentLink
-from app.schemas.parent import MaskedStudent, ParentChildSummary
+from app.schemas.parent import (
+    DemoAttendanceStat,
+    DemoBranchStat,
+    DemoExamPassRate,
+    DemoOverview,
+    DemoYearPassRate,
+    MaskedStudent,
+    ParentChildSummary,
+)
 
 settings = get_settings()
 
@@ -275,6 +283,168 @@ def list_directory(
     return rows, int(total)
 
 
+def demo_overview(db: Session) -> DemoOverview:
+    """College-wide aggregates for the public demo overview.
+
+    Computed from live tables only:
+    - strength per active branch,
+    - attendance counts for the most recent submitted session date,
+    - published-result pass rates per year of study and per exam.
+
+    Nothing here invents a figure. Empty datasets return zeros/empty lists so
+    the UI can render a proper empty state instead of fake numbers.
+    """
+    from datetime import datetime as _datetime
+
+    from sqlalchemy import func
+
+    from app.models.attendance import AttendanceRecord, AttendanceSession
+    from app.models.exam import ExamResult, Examination
+
+    total_students = (
+        db.query(func.count(Student.id)).filter(Student.is_active.is_(True)).scalar() or 0
+    )
+
+    branch_rows = (
+        db.query(
+            Branch.id,
+            Branch.code,
+            Branch.name,
+            func.count(Student.id),
+        )
+        .outerjoin(
+            Student,
+            (Student.branch_id == Branch.id) & (Student.is_active.is_(True)),
+        )
+        .filter(Branch.is_active.is_(True))
+        .group_by(Branch.id, Branch.code, Branch.name)
+        .order_by(Branch.display_order, Branch.id)
+        .all()
+    )
+    branches = [
+        DemoBranchStat(
+            branch_id=branch_id,
+            code=code,
+            name=name,
+            students=int(students or 0),
+            share_pct=_pct(int(students or 0), total_students),
+        )
+        for branch_id, code, name, students in branch_rows
+    ]
+
+    # ---- Attendance: latest submitted session date --------------------------
+    latest = (
+        db.query(func.max(AttendanceSession.attendance_date))
+        .filter(AttendanceSession.status == "submitted")
+        .scalar()
+    )
+    attendance = DemoAttendanceStat(attendance_date=latest)
+    if latest is not None:
+        counts = dict(
+            db.query(AttendanceRecord.status, func.count(AttendanceRecord.id))
+            .join(AttendanceSession, AttendanceSession.id == AttendanceRecord.session_id)
+            .filter(
+                AttendanceSession.attendance_date == latest,
+                AttendanceSession.status == "submitted",
+            )
+            .group_by(AttendanceRecord.status)
+            .all()
+        )
+        attendance.present = int(counts.get("present", 0))
+        attendance.absent = int(counts.get("absent", 0))
+        attendance.late = int(counts.get("late", 0))
+        attendance.excused = int(counts.get("excused", 0))
+        attendance.on_duty = int(counts.get("on_duty", 0))
+        attendance.total = sum(int(v) for v in counts.values())
+        attendance.present_pct = _pct(attendance.present, attendance.total)
+        attendance.absent_pct = _pct(attendance.absent, attendance.total)
+        attendance.late_pct = _pct(attendance.late, attendance.total)
+
+    # ---- Published results: pass rate per year + per exam -------------------
+    result_rows = (
+        db.query(
+            Enrollment.student_id,
+            ClassSection.year_of_study,
+            ExamResult.marks_obtained,
+            ExamResult.is_absent,
+            Examination.pass_marks,
+            Examination.title,
+            Examination.exam_date,
+            Examination.published_at,
+        )
+        .join(Examination, Examination.id == ExamResult.examination_id)
+        .join(Enrollment, Enrollment.id == ExamResult.enrollment_id)
+        .join(ClassSection, ClassSection.id == Enrollment.class_section_id)
+        .filter(Examination.status == "published")
+        .all()
+    )
+
+    per_student: dict[int, dict] = {}
+    per_exam: dict[str, dict] = {}
+    for (
+        student_id,
+        year_of_study,
+        marks,
+        is_absent,
+        pass_marks,
+        title,
+        exam_date,
+        published_at,
+    ) in result_rows:
+        passed = (not is_absent) and marks is not None and marks >= pass_marks
+        record = per_student.setdefault(
+            student_id, {"year": year_of_study, "passed": True}
+        )
+        if not passed:
+            record["passed"] = False
+
+        trend = per_exam.setdefault(
+            title, {"passed": 0, "total": 0, "sort": exam_date or published_at}
+        )
+        trend["total"] += 1
+        if passed:
+            trend["passed"] += 1
+
+    def year_rate(year: int) -> DemoYearPassRate:
+        passed = sum(
+            1
+            for rec in per_student.values()
+            if rec["year"] == year and rec["passed"]
+        )
+        total = sum(1 for rec in per_student.values() if rec["year"] == year)
+        return DemoYearPassRate(
+            year_of_study=year,
+            passed=passed,
+            total=total,
+            pass_pct=_pct(passed, total),
+        )
+
+    ordered = sorted(
+        per_exam.items(),
+        key=lambda item: (item[1]["sort"] is not None, item[1]["sort"]),
+        reverse=True,
+    )[:5]
+    exam_trend = [
+        DemoExamPassRate(label=title, pass_pct=_pct(data["passed"], data["total"]))
+        for title, data in reversed(ordered)
+    ]
+
+    return DemoOverview(
+        total_students=int(total_students),
+        branches=branches,
+        attendance=attendance,
+        first_year_pass=year_rate(1),
+        second_year_pass=year_rate(2),
+        exam_trend=exam_trend,
+        generated_at=_datetime.now(),
+    )
+
+
+def _pct(part: int, whole: int) -> float:
+    """Percentage rounded to one decimal; zero when the denominator is 0."""
+    return round(part / whole * 100, 1) if whole else 0.0
+
+
 __all__ = [
     "find_student",
     "search_students_by_name",
@@ -285,5 +455,6 @@ __all__ = [
     "issue_parent_token",
     "list_children",
     "list_directory",
+    "demo_overview",
     "MaskedStudent",
 ]

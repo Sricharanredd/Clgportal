@@ -14,7 +14,8 @@ npm run preview    # preview the production build on http://localhost:4173
 
 ## Environment
 
-Copy `.env.example` to `.env` and adjust values. `VITE_API_BASE_URL` points at the backend API
-(default `http://localhost:8000/api/v1`); `VITE_USE_MOCKS` toggles mock data during development.
+Copy `.env.example` to `.env` and adjust values. `VITE_DEMO_OPEN_PARENT` enables the
+no-login Demo Mode parent portal; it must match the backend `DEMO_OPEN_PARENT` flag.
+The Vite dev server proxies `/api` to the FastAPI backend (see `vite.config.ts`).
 
 See the root README for full project setup and architecture notes.

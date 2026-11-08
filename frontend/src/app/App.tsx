@@ -52,9 +52,9 @@ export default function App(): JSX.Element {
           </Route>
 
           {/* Parent portal (read-only, own shell, URL-driven).
-              Demo flag on  → /parent overview → /parent/students directory
-                             → /parent/students/:studentId record.
-              Demo flag off → verified lookup in ParentLegacy at /parent. */}
+              Demo Mode is the only parent frontend architecture:
+              /parent overview → /parent/students directory
+              → /parent/students/:studentId record. */}
           <Route path="/parent" element={<ParentPortal />} />
           <Route path="/parent/students" element={<ParentPortal />} />
           <Route path="/parent/students/:studentId" element={<ParentPortal />} />

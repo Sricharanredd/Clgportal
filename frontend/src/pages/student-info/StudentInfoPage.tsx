@@ -5,36 +5,39 @@
  *   /student-info                        → branch + roll number search
  *   /student-info?student=<id>&tab=<tab> → read-only record for one student
  *
- * Data comes from the shared frontend sample dataset (25 fictional students)
- * so the demo works without a backend and stays consistent with the dashboard.
- * Nothing here can create or change a record.
+ * Data comes from the flag-gated demo API (`/parent/demo/*`) and the public
+ * branch list. There is no local sample dataset: every figure is read from
+ * the database. When the demo flag is off the page explains that the public
+ * lookup is unavailable instead of exposing production records.
  */
-import { useState, type ReactNode } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   CalendarCheck2,
   ClipboardList,
   Info,
   Search,
+  ShieldAlert,
   UserRound,
   Wallet,
 } from 'lucide-react';
-import {
-  SAMPLE_BRANCHES,
-  findSampleStudent,
-  getSampleAttendanceHistory,
-  getSampleAttendanceSummary,
-  getSampleFeeDetail,
-  getSampleFeeSummary,
-  getSampleResults,
-  getSampleStudent,
-  type SampleStudent,
-} from '@/shared/data/sampleData';
-import { EmptyState, ErrorState } from '@/components/ui/States';
+import type {
+  AttendanceHistoryEntry,
+  AttendanceSummary,
+  BranchOut,
+  ParentDirectoryItem,
+  ResultSummary,
+  StudentFeesOut,
+  StudentProfile,
+} from '@/shared/api/types';
+import { get } from '@/shared/api/client';
+import { DEMO_OPEN_PARENT } from '@/config/demo';
+import { buttonClass } from '@/components/ui/Button';
+import { EmptyState, ErrorState, Spinner, StatePanel } from '@/components/ui/States';
 import { KpiCard, Panel } from '@/components/ui/Panel';
 import { dateShort, dateTime, inrExact, pct } from '@/shared/lib/format';
-
-const DEFAULT_BRANCHES: BranchOption[] = SAMPLE_BRANCHES.map(({ code, name }) => ({ code, name }));
+import { ApiError, demoGet } from '@/pages/parent/parentClient';
+import CollegeOverview from '@/pages/dashboard/CollegeOverview';
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -46,6 +49,7 @@ const TABS = [
 type Tab = (typeof TABS)[number]['id'];
 
 interface BranchOption {
+  id: number;
   code: string;
   name: string;
 }
@@ -56,9 +60,9 @@ function isTab(value: string | null): value is Tab {
 
 function InfoRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="border-b border-periwinkle/20 py-2.5 last:border-0">
+    <div className="border-b border-line py-2.5 last:border-0">
       <dt className="text-[11px] font-medium uppercase tracking-wide text-muted">{label}</dt>
-      <dd className="mt-0.5 text-sm text-plum">{value ?? '—'}</dd>
+      <dd className="mt-0.5 text-sm text-ink">{value ?? '—'}</dd>
     </div>
   );
 }
@@ -88,22 +92,25 @@ function SearchCard({
 }) {
   return (
     <Panel>
-      <form className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]" onSubmit={onSubmit}>
+      <form
+        className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
+        onSubmit={onSubmit}
+      >
         <div>
           <label htmlFor="si-branch" className="mb-1 block text-xs font-medium text-muted">
-            Branch <span className="text-rose">*</span>
+            Branch <span className="text-danger">*</span>
           </label>
           <select
             id="si-branch"
-            className="surface w-full rounded-xl px-3 py-2 text-sm text-plum"
+            className="surface w-full rounded-control px-3 py-2 text-sm text-ink"
             value={branch}
             required
             onChange={(event) => onBranchChange(event.target.value)}
           >
             <option value="">Select branch</option>
             {branches.map((item) => (
-              <option key={item.code} value={item.code}>
-                {item.code}
+              <option key={item.id} value={item.id}>
+                {item.code} — {item.name}
               </option>
             ))}
           </select>
@@ -111,11 +118,11 @@ function SearchCard({
 
         <div>
           <label htmlFor="si-roll" className="mb-1 block text-xs font-medium text-muted">
-            Roll Number <span className="text-rose">*</span>
+            Roll Number <span className="text-danger">*</span>
           </label>
           <input
             id="si-roll"
-            className="surface w-full rounded-xl px-3 py-2 font-mono text-sm text-plum placeholder:font-sans placeholder:text-muted"
+            className="surface w-full rounded-control px-3 py-2 font-mono text-sm text-ink placeholder:font-sans placeholder:text-muted"
             placeholder="e.g. MPC25001"
             value={roll}
             required
@@ -127,7 +134,7 @@ function SearchCard({
         <div className="flex items-end">
           <button
             type="submit"
-            className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+            className={buttonClass({ className: 'w-full sm:w-auto' })}
             disabled={searching}
             aria-busy={searching}
           >
@@ -143,10 +150,10 @@ function SearchCard({
 
       {feedback ? (
         <p
-          className={`mt-3 rounded-xl border px-3 py-2 text-sm ${
+          className={`mt-3 rounded-control border px-3 py-2 text-sm ${
             feedback.tone === 'error'
-              ? 'border-rose/30 bg-rose/10 text-rose'
-              : 'border-mint bg-mist/70 text-forest'
+              ? 'border-danger/30 bg-danger-bg text-danger'
+              : 'border-line-strong bg-brand-50 text-brand-700'
           }`}
           role={feedback.tone === 'error' ? 'alert' : 'status'}
         >
@@ -154,16 +161,17 @@ function SearchCard({
         </p>
       ) : null}
 
-      <div className="mt-4 flex items-start gap-3 border-t border-mint/70 pt-4">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-mist text-forest">
+      <div className="mt-4 flex items-start gap-3 border-t border-line pt-4">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-600">
           <Info className="h-4 w-4" aria-hidden />
         </span>
         <div>
-          <p className="text-sm font-semibold text-forest-dark">How to view student information</p>
+          <p className="text-sm font-semibold text-ink">How to view student information</p>
           <p className="mt-0.5 text-xs leading-relaxed text-muted">
-            Select the student&apos;s branch, enter the roll number exactly as printed on the college
-            record, and press Search. You will be taken to the student&apos;s Overview tab, where the
-            Attendance, Results and Fees tabs are also available. This page is read-only.
+            Select the student&apos;s branch, enter the roll number exactly as printed on the
+            college record, and press Search. You will be taken to the student&apos;s Overview
+            tab, where the Attendance, Results and Fees tabs are also available. This page is
+            read-only.
           </p>
         </div>
       </div>
@@ -175,7 +183,7 @@ function SearchCard({
 /* Overview                                                                    */
 /* -------------------------------------------------------------------------- */
 
-function OverviewTab({ profile }: { profile: SampleStudent }) {
+function OverviewTab({ profile }: { profile: StudentProfile }) {
   const attendance = profile.attendance;
 
   return (
@@ -205,15 +213,7 @@ function OverviewTab({ profile }: { profile: SampleStudent }) {
             <InfoRow label="Full name" value={profile.full_name} />
             <InfoRow label="Date of birth" value={dateShort(profile.date_of_birth)} />
             <InfoRow label="Gender" value={profile.gender ?? '—'} />
-            <InfoRow
-              label="Guardian"
-              value={
-                profile.guardian_name
-                  ? `${profile.guardian_name} (${profile.guardian_relation})`
-                  : '—'
-              }
-            />
-            <InfoRow label="Guardian phone" value={profile.guardian_phone ?? '—'} />
+            <InfoRow label="Guardian" value={profile.guardian_name ?? '—'} />
             <InfoRow label="Phone" value={profile.phone ?? '—'} />
             <InfoRow label="Email" value={profile.email ?? '—'} />
             <InfoRow label="Address" value={profile.address ?? '—'} />
@@ -224,7 +224,7 @@ function OverviewTab({ profile }: { profile: SampleStudent }) {
           <dl>
             <InfoRow
               label="Roll number"
-              value={<span className="font-mono text-violet">{profile.roll_number}</span>}
+              value={<span className="font-mono text-brand-600">{profile.roll_number}</span>}
             />
             <InfoRow
               label="Branch"
@@ -250,28 +250,52 @@ function OverviewTab({ profile }: { profile: SampleStudent }) {
 /* -------------------------------------------------------------------------- */
 
 const ATTENDANCE_STATUS_STYLE: Record<string, string> = {
-  present: 'bg-sage/15 text-sage',
-  late: 'bg-periwinkle/25 text-violet',
-  absent: 'bg-rose/15 text-rose',
-  excused: 'bg-peach/70 text-plum',
-  on_duty: 'bg-peach/70 text-plum',
+  present: 'bg-success-bg text-success',
+  late: 'bg-warning-bg text-warning',
+  absent: 'bg-danger-bg text-danger',
+  excused: 'bg-brand-50 text-brand-700',
+  on_duty: 'bg-brand-50 text-brand-700',
 };
 
-function AttendanceTab({ studentId }: { studentId: number }) {
-  const data = getSampleAttendanceSummary(studentId);
-  const rows = getSampleAttendanceHistory(studentId);
+function AttendanceTab({
+  studentId,
+  summary,
+}: {
+  studentId: number;
+  summary: AttendanceSummary | null;
+}) {
+  const [rows, setRows] = useState<AttendanceHistoryEntry[] | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setRows(await demoGet<AttendanceHistoryEntry[]>(`/students/${studentId}/attendance/history`));
+    } catch (err) {
+      setError(err);
+      setRows(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [studentId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   return (
     <div className="space-y-5">
       <Panel title="Attendance (submitted sessions only)">
-        {data ? (
+        {summary ? (
           <>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-              <KpiCard label="Overall" value={pct(data.attendance_pct)} accent="violet" />
-              <KpiCard label="Sessions" value={data.total_sessions} accent="periwinkle" />
-              <KpiCard label="Present" value={data.present} accent="sage" />
-              <KpiCard label="Late" value={data.late} accent="periwinkle" />
-              <KpiCard label="Absent" value={data.absent} accent="rose" />
+              <KpiCard label="Overall" value={pct(summary.attendance_pct)} accent="violet" />
+              <KpiCard label="Sessions" value={summary.total_sessions} accent="periwinkle" />
+              <KpiCard label="Present" value={summary.present} accent="sage" />
+              <KpiCard label="Late" value={summary.late} accent="periwinkle" />
+              <KpiCard label="Absent" value={summary.absent} accent="rose" />
             </div>
             <p className="mt-3 text-xs text-muted">
               Overall % = (present + late) ÷ total submitted sessions.
@@ -283,23 +307,27 @@ function AttendanceTab({ studentId }: { studentId: number }) {
       </Panel>
 
       <Panel title="Attendance history by date">
-        {rows.length === 0 ? (
+        {loading ? (
+          <Spinner label="Loading attendance history…" />
+        ) : error ? (
+          <ErrorState error={error} onRetry={() => void load()} />
+        ) : !rows || rows.length === 0 ? (
           <p className="py-3 text-sm text-muted">No submitted attendance records yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-periwinkle/30 text-xs uppercase tracking-wide text-muted">
+                <tr className="border-b border-line text-xs uppercase tracking-wide text-muted">
                   <th className="pb-2 pr-3 font-medium">Date</th>
                   <th className="pb-2 pr-3 font-medium">Subject</th>
                   <th className="pb-2 pr-3 font-medium">Status</th>
                   <th className="pb-2 font-medium">Remarks</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-periwinkle/20">
+              <tbody className="divide-y divide-line">
                 {rows.map((row, index) => (
                   <tr key={`${row.attendance_date}-${row.subject_code ?? 'all'}-${index}`}>
-                    <td className="py-2 pr-3 text-plum">{dateShort(row.attendance_date)}</td>
+                    <td className="py-2 pr-3 text-ink">{dateShort(row.attendance_date)}</td>
                     <td className="py-2 pr-3 text-muted">
                       {row.subject_code
                         ? `${row.subject_name ?? ''} (${row.subject_code})`.trim()
@@ -308,7 +336,7 @@ function AttendanceTab({ studentId }: { studentId: number }) {
                     <td className="py-2 pr-3">
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                          ATTENDANCE_STATUS_STYLE[row.status] ?? 'bg-periwinkle/20 text-plum'
+                          ATTENDANCE_STATUS_STYLE[row.status] ?? 'bg-brand-50 text-brand-700'
                         }`}
                       >
                         {row.status}
@@ -330,8 +358,7 @@ function AttendanceTab({ studentId }: { studentId: number }) {
 /* Results                                                                     */
 /* -------------------------------------------------------------------------- */
 
-function ResultsTab({ studentId }: { studentId: number }) {
-  const rows = getSampleResults(studentId);
+function ResultsTab({ rows }: { rows: ResultSummary[] }) {
   if (rows.length === 0) {
     return (
       <EmptyState
@@ -346,7 +373,7 @@ function ResultsTab({ studentId }: { studentId: number }) {
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-periwinkle/30 text-xs uppercase tracking-wide text-muted">
+            <tr className="border-b border-line text-xs uppercase tracking-wide text-muted">
               <th className="pb-2 pr-3 font-medium">Exam</th>
               <th className="pb-2 pr-3 font-medium">Subject</th>
               <th className="pb-2 pr-3 text-right font-medium">Marks</th>
@@ -354,18 +381,18 @@ function ResultsTab({ studentId }: { studentId: number }) {
               <th className="pb-2 font-medium">Published</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-periwinkle/20">
+          <tbody className="divide-y divide-line">
             {rows.map((row, index) => (
               <tr key={`${row.exam_title}-${row.subject_code}-${index}`}>
-                <td className="py-2 pr-3 text-plum">{row.exam_title}</td>
+                <td className="py-2 pr-3 text-ink">{row.exam_title}</td>
                 <td className="py-2 pr-3 text-muted">
                   {row.subject_name} ({row.subject_code})
                 </td>
-                <td className="py-2 pr-3 text-right font-semibold text-plum">
+                <td className="py-2 pr-3 text-right font-semibold text-ink">
                   {row.is_absent ? 'Absent' : `${row.marks_obtained ?? '—'} / ${row.max_marks}`}
                 </td>
                 <td className="py-2 pr-3">
-                  <span className="rounded-full bg-sage/20 px-2 py-0.5 text-[11px] font-semibold text-sage">
+                  <span className="rounded-full bg-success-bg px-2 py-0.5 text-[11px] font-semibold text-success">
                     {row.status}
                   </span>
                 </td>
@@ -383,93 +410,141 @@ function ResultsTab({ studentId }: { studentId: number }) {
 /* Fees                                                                        */
 /* -------------------------------------------------------------------------- */
 
-function FeesTab({ studentId }: { studentId: number }) {
-  const fee = getSampleFeeSummary(studentId);
-  const detail = getSampleFeeDetail(studentId);
+function FeesTab({
+  studentId,
+  summary,
+}: {
+  studentId: number;
+  summary: StudentProfile['fee'];
+}) {
+  const [detail, setDetail] = useState<StudentFeesOut | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setDetail(await demoGet<StudentFeesOut>(`/students/${studentId}/fees`));
+    } catch (err) {
+      setError(err);
+      setDetail(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [studentId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
   const obligations = detail?.obligations ?? [];
   const payments = detail?.payments ?? [];
 
   return (
     <div className="space-y-5">
       <Panel title="Fee status">
-        {fee ? (
+        {summary ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <KpiCard label="Total" value={inrExact(fee.total_amount)} accent="periwinkle" />
-            <KpiCard label="Paid" value={inrExact(fee.paid_amount)} accent="sage" />
-            <KpiCard label="Outstanding" value={inrExact(fee.pending_amount)} accent="rose" />
-            <KpiCard label="Status" value={fee.status} hint={dateShort(fee.due_date)} accent="violet" />
+            <KpiCard label="Total" value={inrExact(summary.total_amount)} accent="periwinkle" />
+            <KpiCard label="Paid" value={inrExact(summary.paid_amount)} accent="sage" />
+            <KpiCard label="Outstanding" value={inrExact(summary.pending_amount)} accent="rose" />
+            <KpiCard
+              label="Status"
+              value={summary.status}
+              hint={dateShort(summary.due_date)}
+              accent="violet"
+            />
           </div>
         ) : (
           <p className="py-3 text-sm text-muted">No fee information available.</p>
         )}
       </Panel>
 
-      <Panel title="Fee breakdown">
-        {obligations.length === 0 ? (
-          <p className="py-3 text-sm text-muted">No fee obligations found for this student.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-periwinkle/30 text-xs uppercase tracking-wide text-muted">
-                  <th className="pb-2 pr-3 font-medium">Head</th>
-                  <th className="pb-2 pr-3 text-right font-medium">Total</th>
-                  <th className="pb-2 pr-3 text-right font-medium">Paid</th>
-                  <th className="pb-2 pr-3 text-right font-medium">Pending</th>
-                  <th className="pb-2 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-periwinkle/20">
-                {obligations.map((row) => (
-                  <tr key={row.id}>
-                    <td className="py-2 pr-3 text-plum">{row.fee_structure_name}</td>
-                    <td className="py-2 pr-3 text-right text-plum">{inrExact(row.total_amount)}</td>
-                    <td className="py-2 pr-3 text-right text-plum">{inrExact(row.paid_amount)}</td>
-                    <td className="py-2 pr-3 text-right text-plum">{inrExact(row.pending_amount)}</td>
-                    <td className="py-2 text-xs text-muted">{row.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Panel>
+      {loading ? (
+        <Panel title="Fee breakdown">
+          <Spinner label="Loading fee details…" />
+        </Panel>
+      ) : error ? (
+        <ErrorState error={error} onRetry={() => void load()} />
+      ) : (
+        <>
+          <Panel title="Fee breakdown">
+            {obligations.length === 0 ? (
+              <p className="py-3 text-sm text-muted">No fee obligations found for this student.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-line text-xs uppercase tracking-wide text-muted">
+                      <th className="pb-2 pr-3 font-medium">Head</th>
+                      <th className="pb-2 pr-3 text-right font-medium">Total</th>
+                      <th className="pb-2 pr-3 text-right font-medium">Paid</th>
+                      <th className="pb-2 pr-3 text-right font-medium">Pending</th>
+                      <th className="pb-2 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {obligations.map((row) => (
+                      <tr key={row.id}>
+                        <td className="py-2 pr-3 text-ink">{row.fee_structure_name}</td>
+                        <td className="py-2 pr-3 text-right text-ink">
+                          {inrExact(row.total_amount)}
+                        </td>
+                        <td className="py-2 pr-3 text-right text-ink">
+                          {inrExact(row.paid_amount)}
+                        </td>
+                        <td className="py-2 pr-3 text-right text-ink">
+                          {inrExact(row.pending_amount)}
+                        </td>
+                        <td className="py-2 text-xs text-muted">{row.status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Panel>
 
-      <Panel title="Payment history">
-        {payments.length === 0 ? (
-          <p className="py-3 text-sm text-muted">No payments recorded yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-periwinkle/30 text-xs uppercase tracking-wide text-muted">
-                  <th className="pb-2 pr-3 font-medium">Receipt</th>
-                  <th className="pb-2 pr-3 font-medium">Date</th>
-                  <th className="pb-2 pr-3 font-medium">Method</th>
-                  <th className="pb-2 pr-3 text-right font-medium">Amount</th>
-                  <th className="pb-2 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-periwinkle/20">
-                {payments.map((row) => (
-                  <tr key={row.id}>
-                    <td className="py-2 pr-3 font-mono text-xs text-violet">{row.receipt_number}</td>
-                    <td className="py-2 pr-3 text-plum">{dateTime(row.paid_at)}</td>
-                    <td className="py-2 pr-3 text-muted">{row.method}</td>
-                    <td className="py-2 pr-3 text-right font-semibold text-plum">
-                      {inrExact(row.amount)}
-                    </td>
-                    <td className="py-2 text-xs text-muted">{row.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <p className="mt-4 text-xs text-muted">
-          Payments are made at the college accounts office; this portal is read-only.
-        </p>
-      </Panel>
+          <Panel title="Payment history">
+            {payments.length === 0 ? (
+              <p className="py-3 text-sm text-muted">No payments recorded yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-line text-xs uppercase tracking-wide text-muted">
+                      <th className="pb-2 pr-3 font-medium">Receipt</th>
+                      <th className="pb-2 pr-3 font-medium">Date</th>
+                      <th className="pb-2 pr-3 font-medium">Method</th>
+                      <th className="pb-2 pr-3 text-right font-medium">Amount</th>
+                      <th className="pb-2 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {payments.map((row) => (
+                      <tr key={row.id}>
+                        <td className="py-2 pr-3 font-mono text-xs text-brand-600">
+                          {row.receipt_number}
+                        </td>
+                        <td className="py-2 pr-3 text-ink">{dateTime(row.paid_at)}</td>
+                        <td className="py-2 pr-3 text-muted">{row.method}</td>
+                        <td className="py-2 pr-3 text-right font-semibold text-ink">
+                          {inrExact(row.amount)}
+                        </td>
+                        <td className="py-2 text-xs text-muted">{row.status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <p className="mt-4 text-xs text-muted">
+              Payments are made at the college accounts office; this portal is read-only.
+            </p>
+          </Panel>
+        </>
+      )}
     </div>
   );
 }
@@ -478,27 +553,87 @@ function FeesTab({ studentId }: { studentId: number }) {
 /* Page                                                                        */
 /* -------------------------------------------------------------------------- */
 
-export default function StudentInfoPage(): JSX.Element {
+function DemoDisabled() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <StatePanel
+        icon={<ShieldAlert className="h-10 w-10 text-brand-500" aria-hidden />}
+        title="Student lookup is unavailable"
+        description="The public student lookup runs only in demo mode. On a production deployment, records are available through the college office."
+        action={
+          <Link to="/" className={buttonClass({ variant: 'secondary' })}>
+            Back to home
+          </Link>
+        }
+      />
+    </div>
+  );
+}
+
+function StudentInfoContent() {
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const [branches, setBranches] = useState<BranchOption[]>([]);
+  const [branchesError, setBranchesError] = useState<unknown>(null);
+  const [branchesLoading, setBranchesLoading] = useState(true);
 
   const [branch, setBranch] = useState('');
   const [roll, setRoll] = useState('');
-  const [feedback, setFeedback] = useState<{ tone: 'error' | 'info'; message: string } | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [feedback, setFeedback] = useState<{ tone: 'error' | 'info'; message: string } | null>(
+    null,
+  );
+
+  const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState<unknown>(null);
 
   const selectedId = Number(searchParams.get('student'));
   const hasSelection = Number.isInteger(selectedId) && selectedId > 0;
   const tabParam = searchParams.get('tab');
   const tab: Tab = isTab(tabParam) ? tabParam : 'overview';
 
-  // Read straight from the shared sample dataset — no network round-trip, so
-  // the demo works even when the API server is not running.
-  const profile = hasSelection ? getSampleStudent(selectedId) : null;
-  const profileError =
-    hasSelection && !profile
-      ? new Error(`No sample student record exists for id ${selectedId}. Please search again.`)
-      : null;
+  const loadBranches = useCallback(async () => {
+    setBranchesLoading(true);
+    setBranchesError(null);
+    try {
+      const rows = await get<BranchOut[]>('/meta/branches');
+      setBranches(rows.map((item) => ({ id: item.id, code: item.code, name: item.name })));
+    } catch (err) {
+      setBranchesError(err);
+      setBranches([]);
+    } finally {
+      setBranchesLoading(false);
+    }
+  }, []);
 
-  const onSearch = (event: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    void loadBranches();
+  }, [loadBranches]);
+
+  const loadProfile = useCallback(async () => {
+    if (!hasSelection) {
+      setProfile(null);
+      setProfileError(null);
+      return;
+    }
+    setProfileLoading(true);
+    setProfileError(null);
+    try {
+      setProfile(await demoGet<StudentProfile>(`/students/${selectedId}`));
+    } catch (err) {
+      setProfileError(err);
+      setProfile(null);
+    } finally {
+      setProfileLoading(false);
+    }
+  }, [hasSelection, selectedId]);
+
+  useEffect(() => {
+    void loadProfile();
+  }, [loadProfile]);
+
+  const onSearch = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFeedback(null);
 
@@ -509,18 +644,27 @@ export default function StudentInfoPage(): JSX.Element {
       return;
     }
 
-    // Accepts both BIP25001 (seed convention) and BIPC25001.
-    const match = findSampleStudent(wantedBranch, wantedRoll);
-    if (!match) {
+    setSearching(true);
+    try {
+      const match = await demoGet<ParentDirectoryItem>('/lookup', {
+        branch_id: Number(wantedBranch),
+        roll_number: wantedRoll,
+      });
+      setSearchParams({ student: String(match.student_id), tab: 'overview' });
+    } catch (err) {
+      const api = err instanceof ApiError ? err : null;
       setFeedback({
         tone: 'error',
-        message: `No student found for roll number ${wantedRoll} in ${branch}. Check the branch and roll number and try again.`,
+        message:
+          api?.code === 'NO_STUDENT'
+            ? `No student found for roll number ${wantedRoll} in the selected branch. Check the branch and roll number and try again.`
+            : api?.status === 404
+              ? 'The demo student lookup is not enabled on this server.'
+              : api?.message ?? 'Could not reach the server. Please try again.',
       });
-      return;
+    } finally {
+      setSearching(false);
     }
-
-    setFeedback(null);
-    setSearchParams({ student: String(match.student_id), tab: 'overview' });
   };
 
   const clearSelection = () => {
@@ -536,35 +680,44 @@ export default function StudentInfoPage(): JSX.Element {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-2xl font-bold text-forest-dark">Student Info</h2>
+        <h2 className="text-2xl font-bold text-ink">Student Info</h2>
         <p className="text-sm text-muted">
           {hasSelection
             ? 'Read-only student record. Use the tabs to view attendance, results and fees.'
-            : 'Search by branch and roll number to view a student\u2019s read-only record.'}
+            : 'Search by branch and roll number to view a student’s read-only record.'}
         </p>
       </div>
 
       {!hasSelection ? (
         <>
-          <SearchCard
-            branches={DEFAULT_BRANCHES}
-            branch={branch}
-            roll={roll}
-            searching={false}
-            feedback={feedback}
-            onBranchChange={setBranch}
-            onRollChange={setRoll}
-            onSubmit={onSearch}
-          />
+          {branchesLoading ? (
+            <Spinner label="Loading branches…" />
+          ) : branchesError ? (
+            <ErrorState error={branchesError} onRetry={() => void loadBranches()} />
+          ) : (
+            <SearchCard
+              branches={branches}
+              branch={branch}
+              roll={roll}
+              searching={searching}
+              feedback={feedback}
+              onBranchChange={setBranch}
+              onRollChange={setRoll}
+              onSubmit={onSearch}
+            />
+          )}
 
-          <EmptyState
-            title="No student selected"
-            hint="Choose a branch, enter a roll number, and press Search to open the student's Overview."
-          />
+          <CollegeOverview />
         </>
+      ) : profileLoading ? (
+        <Spinner label="Loading student record…" />
       ) : profileError ? (
         <div className="space-y-3">
-          <ErrorState error={profileError} />
+          <ErrorState
+            title="Student record unavailable"
+            error={profileError}
+            onRetry={() => void loadProfile()}
+          />
           <button type="button" className="btn-ghost" onClick={clearSelection}>
             <Search className="h-4 w-4" />
             Back to student search
@@ -575,25 +728,27 @@ export default function StudentInfoPage(): JSX.Element {
           {/* Selected student summary */}
           <div className="glass-card flex flex-wrap items-center justify-between gap-4 rounded-2xl p-5">
             <div className="flex min-w-0 items-center gap-4">
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-forest to-leaf text-xl font-bold text-white">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-450 text-xl font-bold text-white">
                 {profile.full_name.charAt(0)}
               </span>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-xl font-bold text-forest-dark">{profile.full_name}</h3>
+                  <h3 className="text-xl font-bold text-ink">{profile.full_name}</h3>
                   <span
                     className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                      profile.is_active ? 'bg-sage/20 text-sage' : 'bg-peach/70 text-accent-700'
+                      profile.is_active
+                        ? 'bg-success-bg text-success'
+                        : 'bg-warning-bg text-warning'
                     }`}
                   >
                     {profile.is_active ? 'active' : 'inactive'}
                   </span>
-                  <span className="rounded-full border border-mint bg-mist/70 px-2 py-0.5 text-[11px] font-semibold text-forest">
+                  <span className="rounded-full border border-line-strong bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700">
                     Read-only
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-muted">
-                  <span className="font-mono text-violet">{profile.roll_number}</span>
+                  <span className="font-mono text-brand-600">{profile.roll_number}</span>
                   {' · '}
                   {profile.branch_name} ({profile.branch_code})
                   {profile.class_section ? ` · ${profile.class_section}` : ''}
@@ -609,7 +764,11 @@ export default function StudentInfoPage(): JSX.Element {
           </div>
 
           {/* Tabs (kept in the URL so refresh preserves the section) */}
-          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Student information sections">
+          <div
+            className="flex flex-wrap gap-2"
+            role="tablist"
+            aria-label="Student information sections"
+          >
             {TABS.map((item) => (
               <button
                 key={item.id}
@@ -617,7 +776,7 @@ export default function StudentInfoPage(): JSX.Element {
                 role="tab"
                 aria-selected={tab === item.id}
                 className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition ${
-                  tab === item.id ? 'nav-active' : 'bg-white/70 text-plum hover:bg-white'
+                  tab === item.id ? 'nav-active' : 'bg-white/70 text-ink hover:bg-white'
                 }`}
                 onClick={() => setTab(item.id)}
               >
@@ -631,9 +790,11 @@ export default function StudentInfoPage(): JSX.Element {
           </div>
 
           {tab === 'overview' ? <OverviewTab profile={profile} /> : null}
-          {tab === 'attendance' ? <AttendanceTab studentId={profile.id} /> : null}
-          {tab === 'results' ? <ResultsTab studentId={profile.id} /> : null}
-          {tab === 'fees' ? <FeesTab studentId={profile.id} /> : null}
+          {tab === 'attendance' ? (
+            <AttendanceTab studentId={profile.id} summary={profile.attendance} />
+          ) : null}
+          {tab === 'results' ? <ResultsTab rows={profile.published_results} /> : null}
+          {tab === 'fees' ? <FeesTab studentId={profile.id} summary={profile.fee} /> : null}
         </>
       ) : (
         <EmptyState
@@ -643,4 +804,9 @@ export default function StudentInfoPage(): JSX.Element {
       )}
     </div>
   );
+}
+
+export default function StudentInfoPage(): JSX.Element {
+  if (!DEMO_OPEN_PARENT) return <DemoDisabled />;
+  return <StudentInfoContent />;
 }
